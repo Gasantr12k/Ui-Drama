@@ -1,9 +1,4 @@
---[[
-	DRAMA client: loading screen + menu + watermark in ONE script.
-	LocalScript -> ReplicatedFirst  (the only client script you need).
-	Saving settings needs the separate server Script "Drama_Save" in ServerScriptService
-	(server code cannot live in a LocalScript). Without it everything works, nothing is saved.
-]]
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
