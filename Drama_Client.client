@@ -65,7 +65,7 @@ local SOUNDS = {
 -- example: SOUNDS.Soft.click = "rbxassetid://123456"
 
 -- Your own logic: HOOKS["Tab/Card/Row"] = function(value) ... end
-local HOOKS = {}
+local HOOKS = getgenv().DramaHooks or {}
 -- HOOKS["Player/Camera/Field of view"] = function(v) workspace.CurrentCamera.FieldOfView = v end
 
 
