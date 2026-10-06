@@ -193,7 +193,7 @@ do
 
 	-- Crosshair
 	local crosshairGui = nil
-	local CROSSHAIR_IDS = {"", "", ""}  -- Custom 1, 2, 3 — вставь свои айди
+	local CROSSHAIR_IDS = {"10213989924", "7831350554", "7831350554"}  -- Custom 1, 2, 3 — вставь свои айди
 	local function updateCrosshair(ROW)
 		if crosshairGui then crosshairGui:Destroy(); crosshairGui = nil end
 		local r = ROW and ROW["Visual/Crosshair/Enabled"]
