@@ -1252,6 +1252,7 @@ do
 			tw(knob, .12, {Position = UDim2.new(0, card.enabled and 18 or 2, .5, 0)})
 			tw(rowsG, .2, {GroupTransparency = card.enabled and 0 or .55})
 			snd(card.enabled and "on" or "off")
+			if HOOKS[card.path] then task.spawn(HOOKS[card.path], card.enabled) end
 			saveSoon()
 		end)
 		return entry
