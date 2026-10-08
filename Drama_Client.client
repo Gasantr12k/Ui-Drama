@@ -887,11 +887,11 @@ do
 	task.wait()
 	local vp = gui.AbsoluteSize
 	S = math.clamp(vp.Y / 640, .75, 1.15)
-	local winW = math.min(780, vp.X * .94 / S)
-	local winH = math.min(560, vp.Y * .92 / S)
-	local MINW, MINH = 460, 340
-	local compact = winW < 640
-	local sideW = compact and 64 or 224
+	local winW = math.min(660, vp.X * .80 / S)
+	local winH = math.min(460, vp.Y * .80 / S)
+	local MINW, MINH = 400, 300
+	local compact = winW < 540
+	local sideW = compact and 54 or 190
 
 	local winBase = UDim2.fromScale(.5, .5)
 	local win = new("CanvasGroup", {AnchorPoint = Vector2.new(.5, .5), Position = winBase, Size = UDim2.fromOffset(winW, winH),
@@ -899,6 +899,132 @@ do
 	new("UIScale", {Scale = S}, win)
 	corner(win, 12)
 	local winStroke = stroke(win, C.line)
+
+	-- ESP preview panel (справа от меню)
+	local espPreview = new("CanvasGroup", {
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0.5, winW * S / 2 + 12, 0.5, 0),
+		Size = UDim2.fromOffset(140 * S, 200 * S),
+		BackgroundColor3 = C.panel, BackgroundTransparency = .12,
+		BorderSizePixel = 0, GroupTransparency = 1, Visible = false,
+	}, gui)
+	corner(espPreview, 10)
+	stroke(espPreview, C.line)
+	new("UIScale", {Scale = S}, espPreview)
+
+	-- Заголовок
+	local epTitle = new("TextLabel", {
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, 28),
+		Position = UDim2.fromOffset(0, 0),
+		Text = "ESP Preview",
+		TextColor3 = C.t1,
+		TextSize = 11,
+		Font = FONTB,
+		TextXAlignment = Enum.TextXAlignment.Center,
+	}, espPreview)
+
+	-- Фигурка-заглушка (силуэт)
+	local dummy = new("Frame", {BackgroundTransparency = 1, Size = UDim2.new(1,0,1,-28), Position = UDim2.fromOffset(0,28)}, espPreview)
+
+	local function mkEPLine(col) return new("Frame", {BackgroundColor3 = col, BorderSizePixel = 0, AnchorPoint = Vector2.new(0.5,0.5)}, dummy) end
+	local function setLine(f, x1,y1,x2,y2,t)
+		local dx,dy = x2-x1, y2-y1
+		local len = math.sqrt(dx*dx+dy*dy)
+		f.Position = UDim2.fromOffset((x1+x2)/2,(y1+y2)/2)
+		f.Size = UDim2.fromOffset(len, t or 1.5)
+		f.Rotation = math.deg(math.atan2(dy,dx))
+	end
+
+	-- Координаты силуэта (относительно dummy 140x172)
+	local W2, H2 = 70, 86
+	local cx = W2
+	-- бокс
+	local bx1,by1,bx2,by2 = cx-28, 8, cx+28, 168
+	local boxColor = Color3.fromRGB(80,220,80)
+	local bl = {mkEPLine(boxColor),mkEPLine(boxColor),mkEPLine(boxColor),mkEPLine(boxColor)}
+	setLine(bl[1],bx1,by1,bx2,by1,1.5) -- top
+	setLine(bl[2],bx1,by2,bx2,by2,1.5) -- bot
+	setLine(bl[3],bx1,by1,bx1,by2,1.5) -- left
+	setLine(bl[4],bx2,by1,bx2,by2,1.5) -- right
+
+	-- скелет (жёлтый)
+	local sc = Color3.fromRGB(255,220,0)
+	local skel = {
+		{cx,18,cx,50},   -- голова→торс
+		{cx,50,cx,95},   -- торс→таз
+		{cx,55,cx-22,75},{cx-22,75,cx-22,100}, -- лев рука
+		{cx,55,cx+22,75},{cx+22,75,cx+22,100}, -- прав рука
+		{cx,95,cx-16,130},{cx-16,130,cx-16,168}, -- лев нога
+		{cx,95,cx+16,130},{cx+16,130,cx+16,168}, -- прав нога
+	}
+	for _,s in ipairs(skel) do
+		local l = mkEPLine(sc)
+		setLine(l,s[1],s[2],s[3],s[4],1.2)
+	end
+
+	-- голова (кружок)
+	local head = new("Frame", {
+		AnchorPoint = Vector2.new(0.5,0.5),
+		Position = UDim2.fromOffset(cx,10),
+		Size = UDim2.fromOffset(14,14),
+		BackgroundColor3 = sc,
+		BorderSizePixel = 0,
+	}, dummy)
+	corner(head, 7)
+
+	-- hp бар
+	local hpBgEP = new("Frame", {
+		BackgroundColor3 = Color3.fromRGB(30,30,30),
+		BorderSizePixel = 0,
+		Position = UDim2.fromOffset(bx1-8, by1),
+		Size = UDim2.fromOffset(4, by2-by1),
+	}, dummy)
+	local hpFillEP = new("Frame", {
+		AnchorPoint = Vector2.new(0,1),
+		Position = UDim2.fromScale(0,1),
+		Size = UDim2.fromScale(1,0.8),
+		BackgroundColor3 = Color3.fromRGB(80,220,80),
+		BorderSizePixel = 0,
+	}, hpBgEP)
+
+	-- ник
+	new("TextLabel", {
+		BackgroundTransparency = 1,
+		Size = UDim2.fromOffset(80,12),
+		Position = UDim2.fromOffset(cx-40, by1-14),
+		Text = "Player",
+		TextColor3 = Color3.new(1,1,1),
+		TextStrokeTransparency = 0,
+		TextSize = 10,
+		Font = FONTB,
+		TextXAlignment = Enum.TextXAlignment.Center,
+	}, dummy)
+
+	-- дистанция
+	new("TextLabel", {
+		BackgroundTransparency = 1,
+		Size = UDim2.fromOffset(60,12),
+		Position = UDim2.fromOffset(cx-30, by2+2),
+		Text = "42m",
+		TextColor3 = Color3.fromRGB(200,200,200),
+		TextStrokeTransparency = 0,
+		TextSize = 9,
+		Font = Enum.Font.Gotham,
+		TextXAlignment = Enum.TextXAlignment.Center,
+	}, dummy)
+
+	-- hp число
+	new("TextLabel", {
+		BackgroundTransparency = 1,
+		Size = UDim2.fromOffset(40,12),
+		Position = UDim2.fromOffset(bx1-8, by2+2),
+		Text = "80hp",
+		TextColor3 = Color3.fromRGB(80,220,80),
+		TextStrokeTransparency = 0,
+		TextSize = 9,
+		Font = Enum.Font.Gotham,
+	}, dummy)
 
 	-- sidebar
 	local side = new("Frame", {Size = UDim2.new(0, sideW, 1, 0), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = .75,
@@ -1365,11 +1491,15 @@ do
 			win.Visible = true
 			win.Position = winBase + UDim2.fromOffset(0, 10)
 			tw(win, .22, {GroupTransparency = 0, Position = winBase})
+			espPreview.Visible = true
+			espPreview.Position = UDim2.new(0.5, winW * S / 2 + 12, 0.5, 0) + UDim2.fromOffset(0, 10)
+			tw(espPreview, .22, {GroupTransparency = 0, Position = UDim2.new(0.5, winW * S / 2 + 12, 0.5, 0)})
 			snd("open")
 			snd("appear")
 		else
 			tw(win, .18, {GroupTransparency = 1, Position = winBase + UDim2.fromOffset(0, 10)})
-			task.delay(.2, function() if not isOpen then win.Visible = false end end)
+			tw(espPreview, .18, {GroupTransparency = 1, Position = UDim2.new(0.5, winW * S / 2 + 12, 0.5, 10)})
+			task.delay(.2, function() if not isOpen then win.Visible = false; espPreview.Visible = false end end)
 			flush()
 		end
 		if updateHud then updateHud() end
