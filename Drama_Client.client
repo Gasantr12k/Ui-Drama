@@ -17,9 +17,9 @@ local IMG = {
 	shield = "rbxassetid://131466156031810",
 	letters = "rbxassetid://128693753091894",
 	ribbon = "rbxassetid://76424658362113",
-	icons = "rbxassetid://126746978894613",
+	icons = "", -- "rbxassetid://126746978894613",
 }
-local MUSIC_ID = "rbxassetid://124020581613675",
+local MUSIC_ID = "" -- "rbxassetid://124020581613675",
 local MUSIC_VOLUME = 1
 
 -- Menu sounds. Fill the ones you have, empty = silent.
@@ -540,8 +540,6 @@ do
 						{t="d", l="HP position", o={"Left", "Right", "Top", "Bottom"}, v=2},
 						{t="c", l="Preview", v=false},
 						{t="s", l="Max distance", min=50, max=2000, v=500, u="m"},
-						{t="o", l="Box color", v=1},
-						{t="o", l="Bar color", v=2},
 					},
 				},
 				{
@@ -553,12 +551,7 @@ do
 						{t="c", l="Enabled", v=false},
 						{t="d", l="Style", o={"Default", "Custom 1", "Custom 2", "Custom 3"}, v=1},
 						{t="s", l="Size", min=2, max=40, v=14, u="px"},
-						{t="s", l="Gap", min=0, max=20, v=4, u="px"},
-						{t="s", l="Thickness", min=1, max=6, v=2, u="px"},
 						{t="s", l="Opacity", min=0, max=100, v=100, u="%"},
-						{t="o", l="Color", v=5},
-						{t="c", l="Outline", v=false},
-						{t="c", l="Center dot", v=true},
 					},
 				},
 			},
@@ -576,7 +569,6 @@ do
 					rows={
 						{t="d", l="Time of day", o={"Dynamic", "Morning", "Noon", "Dusk", "Night"}, v=1},
 						{t="s", l="Clock hour", min=0, max=24, v=12, u="h"},
-						{t="c", l="Freeze time", v=false},
 					},
 				},
 				{
@@ -588,7 +580,6 @@ do
 						{t="c", l="Enable fog", v=false},
 						{t="s", l="Fog start", min=0, max=1000, v=100, u="m"},
 						{t="s", l="Fog end", min=100, max=5000, v=1000, u="m"},
-						{t="o", l="Fog color", v=5},
 					},
 				},
 				{
@@ -600,7 +591,6 @@ do
 						{t="s", l="Brightness", min=0, max=200, v=100, u="%"},
 						{t="s", l="Ambient", min=0, max=100, v=30, u="%"},
 						{t="c", l="Shadows", v=true},
-						{t="d", l="Shadow softness", o={"Hard", "Medium", "Soft"}, v=2},
 					},
 				},
 				{
@@ -609,8 +599,6 @@ do
 					icon="star",
 					on=false,
 					rows={
-						{t="c", l="Sun rays", v=false},
-						{t="s", l="Ray intensity", min=0, max=100, v=50, u="%"},
 						{t="c", l="Bloom", v=false},
 						{t="s", l="Bloom intensity", min=0, max=100, v=40, u="%"},
 						{t="c", l="Blur", v=false},
@@ -1494,14 +1482,10 @@ do
 			win.Visible = true
 			win.Position = winBase + UDim2.fromOffset(0, 10)
 			tw(win, .22, {GroupTransparency = 0, Position = winBase})
-			espPreview.Visible = true
-			espPreview.Position = UDim2.new(0.5, winW * S / 2 + 12, 0.5, 0) + UDim2.fromOffset(0, 10)
-			tw(espPreview, .22, {GroupTransparency = 0, Position = UDim2.new(0.5, winW * S / 2 + 12, 0.5, 0)})
 			snd("open")
 			snd("appear")
 		else
 			tw(win, .18, {GroupTransparency = 1, Position = winBase + UDim2.fromOffset(0, 10)})
-			tw(espPreview, .18, {GroupTransparency = 1, Position = UDim2.new(0.5, winW * S / 2 + 12, 0.5, 10)})
 			task.delay(.2, function() if not isOpen then win.Visible = false; espPreview.Visible = false end end)
 			flush()
 		end
