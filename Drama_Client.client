@@ -392,87 +392,38 @@ do
 			cards={
 				{
 					col=0,
-					title="Crosshair",
+					title="Silent aim",
 					icon="crosshair",
-					on=true,
-					rows={
-						{t="k", l="Hotkey", v="Mouse 2"},
-						{t="c", l="Dynamic spread", v=true},
-						{t="c", l="Center dot", v=true},
-						{t="s", l="Size", min=2, max=40, v=14, u="px"},
-						{t="s", l="Gap", min=0, max=20, v=4, u="px"},
-						{t="d", l="Style", o={"Classic", "Cross", "Circle"}, v=1},
-						{t="c", l="Outline", v=false},
-						{
-							t="g",
-							l="Customize",
-							rows={
-								{t="s", l="Thickness", min=1, max=6, v=2, u="px"},
-								{t="s", l="Opacity", min=0, max=100, v=100, u="%"},
-								{t="o", l="Color", v=1},
-								{t="c", l="Dynamic gap", v=false},
-							},
-							open=false,
-						},
-					},
-				},
-				{
-					col=0,
-					title="Zoom",
-					icon="eye",
 					on=false,
 					rows={
-						{t="k", l="Zoom key", v="Mouse 2"},
-						{t="c", l="Toggle mode", v=false},
-						{t="s", l="Level", min=1, max=8, v=3, u="×"},
-						{t="s", l="Speed", min=1, max=10, v=6, u=""},
-						{t="o", l="Vignette", v=1},
+						{t="c", l="Wall check", v=true},
+						{t="d", l="Target part", o={"Head", "Torso", "Closest"}, v=1},
+						{t="s", l="Distance", min=50, max=2000, v=500, u=" st"},
+						{t="c", l="Target snapline", v=true},
+						{t="d", l="Whitelist", o={"Whitelist"}, v=1},
 					},
 				},
 				{
 					col=1,
-					title="Sensitivity",
-					icon="sliders",
-					on=true,
+					title="Aimbot",
+					icon="crosshair",
+					on=false,
 					rows={
-						{t="c", l="Raw input", v=true},
-						{t="s", l="Base", min=1, max=30, v=8, u=""},
-						{t="s", l="Zoomed", min=1, max=30, v=6, u=""},
-						{t="s", l="Curve", min=0, max=100, v=20, u="%"},
-						{t="d", l="Axis", o={"Both", "Horizontal", "Vertical"}, v=1},
-						{t="c", l="Invert Y", v=false},
+						{t="k", l="Hotkey", v="Mouse 2"},
+						{t="c", l="Wall check", v=true},
+						{t="d", l="Target part", o={"Head", "Torso", "Closest"}, v=1},
+						{t="s", l="Distance", min=50, max=2000, v=500, u=" st"},
+						{t="s", l="Smoothing", min=0, max=95, v=25, u="%"},
 						{
 							t="g",
-							l="Advanced",
+							l="FOV settings",
 							rows={
-								{t="s", l="Acceleration", min=0, max=100, v=0, u="%"},
-								{t="s", l="Deadzone", min=0, max=30, v=2, u="%"},
-								{t="c", l="Snap to target", v=false},
+								{t="c", l="Show circle", v=true},
+								{t="s", l="Radius", min=20, max=600, v=150, u="px"},
 							},
-							open=false,
+							open=true,
 						},
-					},
-				},
-				{
-					col=1,
-					title="Feedback",
-					icon="star",
-					on=true,
-					rows={
-						{t="c", l="Hit marker", v=true},
-						{t="d", l="Sound", o={"Tick", "Pop", "Chime"}, v=1},
-						{t="s", l="Volume", min=0, max=100, v=60, u="%"},
-						{t="o", l="Marker color", v=3},
-						{
-							t="g",
-							l="More",
-							rows={
-								{t="s", l="Marker size", min=4, max=32, v=12, u="px"},
-								{t="s", l="Duration", min=100, max=1000, v=300, u="ms"},
-								{t="c", l="Kill confirm", v=true},
-							},
-							open=false,
-						},
+						{t="d", l="Whitelist", o={"Whitelist"}, v=1},
 					},
 				},
 			},
@@ -1214,7 +1165,8 @@ do
 				Size = UDim2.fromOffset(112, 24), BackgroundColor3 = C.chk}, f)
 			corner(b, 4)
 			local st = stroke(b, C.line)
-			local t = text(b, row.o[row.val], 12, C.t2, {Position = UDim2.fromOffset(8, 0), Size = UDim2.new(1, -28, 1, 0)})
+			if not row.o[row.val] then row.val = 1 end
+			local t = text(b, row.o[row.val] or "", 12, C.t2, {Position = UDim2.fromOffset(8, 0), Size = UDim2.new(1, -28, 1, 0)})
 			icon(b, "chev", 12, C.t2, {AnchorPoint = R, Position = UDim2.new(1, -8, .5, 0)})
 			b.MouseEnter:Connect(function() st.Color = C.line2; t.TextColor3 = C.t1 end)
 			b.MouseLeave:Connect(function() st.Color = C.line; t.TextColor3 = C.t2 end)
