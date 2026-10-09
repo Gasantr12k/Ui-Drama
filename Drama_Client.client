@@ -17,9 +17,9 @@ local IMG = {
 	shield = "rbxassetid://131466156031810",
 	letters = "rbxassetid://128693753091894",
 	ribbon = "rbxassetid://76424658362113",
-	icons = "", -- "rbxassetid://126746978894613",
+	icons = "rbxassetid://126746978894613",
 }
-local MUSIC_ID = "" -- "rbxassetid://124020581613675",
+local MUSIC_ID = "rbxassetid://124020581613675",
 local MUSIC_VOLUME = 1
 
 -- Menu sounds. Fill the ones you have, empty = silent.
