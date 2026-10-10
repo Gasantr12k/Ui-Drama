@@ -8,6 +8,22 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ReplicatedFirst = game:GetService("ReplicatedFirst")
 local ContentProvider = game:GetService("ContentProvider")
 
+-- Cleanup long-lived connections from an earlier execution of this client.
+local ENV = (type(getgenv) == "function" and getgenv()) or _G
+local CLIENT_RUNTIME_KEY = "DramaClientRuntime"
+local oldRuntime = ENV[CLIENT_RUNTIME_KEY]
+if type(oldRuntime) == "table" and type(oldRuntime.connections) == "table" then
+    for _, connection in ipairs(oldRuntime.connections) do
+        pcall(function() connection:Disconnect() end)
+    end
+end
+local runtime = {connections = {}}
+ENV[CLIENT_RUNTIME_KEY] = runtime
+local function trackConnection(connection)
+    if connection then runtime.connections[#runtime.connections + 1] = connection end
+    return connection
+end
+
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
@@ -264,7 +280,7 @@ local function runLoader()
 	end)
 
 	local conn
-	conn = RunService.RenderStepped:Connect(function()
+	conn = trackConnection(RunService.RenderStepped:Connect(function()
 		local t = os.clock() - t0
 		for i = #events, 1, -1 do
 			if events[i] and t >= events[i][1] then
@@ -367,7 +383,7 @@ local function runLoader()
 				if music then music:Destroy() end
 			end
 		end
-	end)
+	end))
 end
 task.spawn(runLoader)
 
@@ -784,44 +800,94 @@ do
 		return s
 	end
 	local function applySnap(s)
+		if type(s) ~= "table" then return end
 		for p, r in pairs(ROW) do
 			local v = s[p]
-			if v ~= nil and type(v) == type(r.val) then r.val = v end
+			local valid = v ~= nil and type(v) == type(r.val)
+			if valid and r.t == "d" then valid = type(v) == "number" and v % 1 == 0 and v >= 1 and v <= #(r.o or {}) end
+			if valid and r.t == "s" then valid = type(v) == "number" and v >= (r.min or 0) and v <= (r.max or math.huge) end
+			if valid then
+				r.val = v
+				local hook = HOOKS[p]
+				if type(hook) == "function" then task.spawn(function() local ok, err = pcall(hook, v); if not ok then warn("[Drama] Setting hook failed (" .. p .. "): " .. tostring(err)) end end) end
+			end
 		end
 		for p, c in pairs(CARD) do
 			local v = s[p .. "!on"]
-			if type(v) == "boolean" then c.enabled = v end
+			if type(v) == "boolean" then
+				c.enabled = v
+				local hook = HOOKS[p]
+				if type(hook) == "function" then task.spawn(function() local ok, err = pcall(hook, v); if not ok then warn("[Drama] Card hook failed (" .. p .. "): " .. tostring(err)) end end) end
+			end
 		end
 	end
 
-	----------------------------------------------------------------- saving
+	----------------------------------------------------------------- saving (local file + optional server fallback)
+	local HttpService = game:GetService("HttpService")
+	local CONFIG_FILE = "Drama_profiles.json"
 	local remote = ReplicatedStorage:WaitForChild("DramaSave", 8)
 	local function callServer(...)
-		if not remote then return nil end
+		if not remote or not remote:IsA("RemoteFunction") then return nil end
 		local args = table.pack(...)
 		local ok, res = pcall(function() return remote:InvokeServer(table.unpack(args, 1, args.n)) end)
 		return ok and res or nil
 	end
-	do
-		local data = callServer("load")
-		if type(data) == "table" then
-			if type(data.rows) == "table" then applySnap(data.rows) end
-			if type(data.profiles) == "table" then profiles = data.profiles end
-			if type(data.active) == "number" then active = data.active end
+	local function loadLocal()
+		if type(readfile) ~= "function" or type(isfile) ~= "function" then return nil end
+		local ok, data = pcall(function()
+			if not isfile(CONFIG_FILE) then return nil end
+			return HttpService:JSONDecode(readfile(CONFIG_FILE))
+		end)
+		return ok and type(data) == "table" and data or nil
+	end
+	local function saveLocal(data)
+		if type(writefile) ~= "function" then return false end
+		local ok = pcall(function()
+			writefile(CONFIG_FILE, HttpService:JSONEncode(data))
+		end)
+		return ok
+	end
+	local function validProfiles(value)
+		local result = {}
+		if type(value) ~= "table" then return result end
+		for _, p in ipairs(value) do
+			if #result >= 6 then break end
+			if type(p) == "table" and type(p.n) == "string" and #p.n > 0 and #p.n <= 32 and type(p.s) == "table" then
+				result[#result + 1] = {n = p.n, t = (type(p.t) == "number" and p.t or os.time()), s = p.s}
+			end
 		end
-		if #profiles == 0 then
-			profiles = {{n = "Default", t = os.time(), s = snapshot()}}
-			active = 1
-		end
+		return result
+	end
+	local data = loadLocal()
+	if not data then data = callServer("load") end
+	if type(data) == "table" then
+		if type(data.rows) == "table" then applySnap(data.rows) end
+		profiles = validProfiles(data.profiles)
+		if type(data.active) == "number" and data.active % 1 == 0 and data.active >= 1 and data.active <= #profiles then active = data.active end
+	end
+	if #profiles == 0 then
+		profiles = {{n = "Default", t = os.time(), s = snapshot()}}
+		active = 1
 	end
 	local saveToken = 0
 	local function flush()
-		task.spawn(callServer, "save", {rows = snapshot(), profiles = profiles, active = active})
+		local payload = {version = 1, rows = snapshot(), profiles = profiles, active = active, savedAt = os.time()}
+		local localOK = saveLocal(payload)
+		-- Server persistence remains optional; local saving works without a server RemoteFunction.
+		if remote then task.spawn(callServer, "save", payload) end
+		if not localOK and type(writefile) ~= "function" then
+			warn("[Drama] Config saving unavailable: executor does not expose writefile")
+		end
 	end
 	local function saveSoon()
 		saveToken += 1
 		local tok = saveToken
-		task.delay(1.5, function() if tok == saveToken then flush() end end)
+		task.delay(1.25, function()
+			if tok == saveToken then
+				local ok, err = pcall(flush)
+				if not ok then warn("[Drama] Config save failed: " .. tostring(err)) end
+			end
+		end)
 	end
 
 	----------------------------------------------------------------- helpers
@@ -1613,7 +1679,7 @@ do
 	hb.Activated:Connect(function() if ready then setOpen(not isOpen) end end)
 	do
 		local acc, frames = 0, 0
-		RunService.RenderStepped:Connect(function(dt)
+		trackConnection(RunService.RenderStepped:Connect(function(dt)
 			acc += dt; frames += 1
 			if acc >= .5 then
 				local fps = math.floor(frames / acc + .5)
@@ -1622,11 +1688,11 @@ do
 				tPing.Text = '<font color="#F2F2F2">' .. ping .. "</font> ms"
 				acc, frames = 0, 0
 			end
-		end)
+		end))
 	end
 
 	----------------------------------------------------------------- menu key
-	UIS.InputBegan:Connect(function(input, gp)
+	trackConnection(UIS.InputBegan:Connect(function(input, gp)
 		if listen then
 			local kc, ut = input.KeyCode, input.UserInputType
 			if kc == Enum.KeyCode.Escape then stopListen(nil)
@@ -1638,7 +1704,7 @@ do
 		if gp or not ready then return end
 		local key = V("Configs/Menu/Menu key")
 		if input.KeyCode.Name == key or input.UserInputType.Name == key then setOpen(not isOpen) end
-	end)
+	end))
 
 	----------------------------------------------------------------- start (after the loading screen)
 	for p, h in pairs(HOOKS) do if ROW[p] then task.spawn(h, ROW[p].val) end end
