@@ -397,10 +397,46 @@ do
 					on=false,
 					rows={
 						{t="c", l="Wall check", v=true},
+						{t="c", l="Dead check", v=true},
+						{t="c", l="Team check", v=false},
 						{t="d", l="Target part", o={"Head", "Torso", "Closest"}, v=1},
+						{t="d", l="Target priority", o={"Crosshair", "Distance", "Health"}, v=1},
 						{t="s", l="Distance", min=50, max=2000, v=500, u=" st"},
+						{t="s", l="Hit chance", min=1, max=100, v=100, u="%"},
+						{t="s", l="Prediction", min=0, max=300, v=0, u=" ms"},
 						{t="c", l="Target snapline", v=true},
+						{
+							t="g",
+							l="FOV settings",
+							rows={
+								{t="c", l="Show circle", v=false},
+								{t="s", l="Radius", min=20, max=600, v=300, u="px"},
+							},
+							open=false,
+						},
 						{t="d", l="Whitelist", o={"Whitelist"}, v=1},
+					},
+				},
+				{
+					col=0,
+					title="Bullet mods",
+					icon="crosshair",
+					on=false,
+					rows={
+						{t="c", l="Wallbang", v=true},
+						{t="c", l="Instant hit", v=true},
+					},
+				},
+				{
+					col=0,
+					title="Triggerbot",
+					icon="crosshair",
+					on=false,
+					rows={
+						{t="s", l="Delay", min=0, max=300, v=50, u=" ms"},
+						{t="s", l="Distance", min=20, max=1000, v=300, u=" st"},
+						{t="c", l="Team check", v=true},
+						{t="c", l="Dead check", v=true},
 					},
 				},
 				{
@@ -411,9 +447,14 @@ do
 					rows={
 						{t="k", l="Hotkey", v="Mouse 2"},
 						{t="c", l="Wall check", v=true},
+						{t="c", l="Dead check", v=true},
+						{t="c", l="Team check", v=false},
+						{t="c", l="Sticky target", v=false},
 						{t="d", l="Target part", o={"Head", "Torso", "Closest"}, v=1},
+						{t="d", l="Target priority", o={"Crosshair", "Distance", "Health"}, v=1},
 						{t="s", l="Distance", min=50, max=2000, v=500, u=" st"},
 						{t="s", l="Smoothing", min=0, max=95, v=25, u="%"},
+						{t="s", l="Prediction", min=0, max=300, v=0, u=" ms"},
 						{
 							t="g",
 							l="FOV settings",
@@ -461,12 +502,17 @@ do
 					col=1,
 					title="Camera",
 					icon="eye",
-					on=true,
+					on=false,
 					rows={
 						{t="s", l="Field of view", min=60, max=120, v=90, u="°"},
 						{t="s", l="Smoothing", min=0, max=100, v=35, u="%"},
 						{t="c", l="Head bob", v=false},
 						{t="d", l="Perspective", o={"First person", "Third person"}, v=1},
+						{t="c", l="Zoom", v=true},
+						{t="s", l="Zoom FOV", min=5, max=60, v=25, u="°"},
+						{t="k", l="Zoom key", v="Z"},
+						{t="c", l="Toggle mode", v=false},
+						{t="c", l="Touch button", v=true},
 					},
 				},
 			},
@@ -490,6 +536,13 @@ do
 						{t="c", l="Skeleton", v=true},
 						{t="d", l="HP position", o={"Left", "Right", "Top", "Bottom"}, v=2},
 						{t="c", l="Preview", v=false},
+						{t="c", l="Weapon", v=true},
+						{t="c", l="Arrows", v=true},
+						{t="c", l="Vis check", v=true},
+						{t="d", l="Corner color", o={"White", "Mint", "Green", "Red", "Yellow", "Blue", "Pink", "Orange"}, v=2},
+						{t="d", l="Visible color", o={"White", "Mint", "Green", "Red", "Yellow", "Blue", "Pink", "Orange"}, v=3},
+						{t="d", l="Hidden color", o={"White", "Mint", "Green", "Red", "Yellow", "Blue", "Pink", "Orange"}, v=4},
+						{t="d", l="Arrow color", o={"White", "Mint", "Green", "Red", "Yellow", "Blue", "Pink", "Orange"}, v=4},
 						{t="s", l="Max distance", min=50, max=2000, v=500, u="m"},
 					},
 				},
@@ -503,6 +556,22 @@ do
 						{t="d", l="Style", o={"Default", "Custom 1", "Custom 2", "Custom 3"}, v=1},
 						{t="s", l="Size", min=2, max=40, v=14, u="px"},
 						{t="s", l="Opacity", min=0, max=100, v=100, u="%"},
+					},
+				},
+				{
+					col=1,
+					title="Combat",
+					icon="crosshair",
+					on=false,
+					rows={
+						{t="c", l="Bullet tracer", v=true},
+						{t="d", l="Tracer color", o={"White", "Mint", "Green", "Red", "Yellow", "Blue", "Pink", "Orange"}, v=2},
+						{t="s", l="Tracer time", min=100, max=3000, v=800, u=" ms"},
+						{t="c", l="Hit effect", v=true},
+						{t="d", l="Hit color", o={"White", "Mint", "Green", "Red", "Yellow", "Blue", "Pink", "Orange"}, v=1},
+						{t="c", l="Damage numbers", v=true},
+						{t="c", l="Hit marker", v=true},
+						{t="d", l="Headshot color", o={"White", "Mint", "Green", "Red", "Yellow", "Blue", "Pink", "Orange"}, v=5},
 					},
 				},
 			},
@@ -1014,16 +1083,30 @@ do
 			catcher = new("TextButton", {Text = "", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), ZIndex = 1}, overlay)
 			catcher.Activated:Connect(closeDropdown)
 			local rel = (btn.AbsolutePosition - overlay.AbsolutePosition) / S
-			menu = new("CanvasGroup", {AnchorPoint = Vector2.new(1, 0), Position = UDim2.fromOffset(rel.X + btn.AbsoluteSize.X / S, rel.Y + btn.AbsoluteSize.Y / S + 4),
-				Size = UDim2.fromOffset(math.max(btn.AbsoluteSize.X / S, 120), #row.o * 28 + 8), BackgroundColor3 = Color3.fromHex("141414"),
+			local n = #row.o
+			local MAXV = 7
+			local ovH = overlay.AbsoluteSize.Y / S
+			local h = math.min(math.min(n, MAXV) * 28 + 8, ovH - 16)
+			local top = rel.Y + btn.AbsoluteSize.Y / S + 4
+			if top + h > ovH - 8 then top = rel.Y - h - 4 end
+			top = math.clamp(top, 8, math.max(8, ovH - h - 8))
+			menu = new("CanvasGroup", {AnchorPoint = Vector2.new(1, 0), Position = UDim2.fromOffset(rel.X + btn.AbsoluteSize.X / S, top),
+				Size = UDim2.fromOffset(math.max(btn.AbsoluteSize.X / S, 120), h), BackgroundColor3 = Color3.fromHex("141414"),
 				BorderSizePixel = 0, ZIndex = 2, GroupTransparency = 1}, overlay)
 			corner(menu, 8); stroke(menu, C.line2)
 			new("UIPadding", {PaddingTop = UDim.new(0, 4), PaddingBottom = UDim.new(0, 4), PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 4)}, menu)
-			new("UIListLayout", {SortOrder = Enum.SortOrder.LayoutOrder}, menu)
+			local host = menu
+			if n * 28 > h - 8 then
+				host = new("ScrollingFrame", {BackgroundTransparency = 1, BorderSizePixel = 0, Size = UDim2.fromScale(1, 1),
+					CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y, Active = true, ScrollingEnabled = true,
+					ScrollBarThickness = 4, ScrollBarImageTransparency = 0, ScrollBarImageColor3 = C.line2,
+					ScrollingDirection = Enum.ScrollingDirection.Y, ElasticBehavior = Enum.ElasticBehavior.Never}, menu)
+			end
+			new("UIListLayout", {SortOrder = Enum.SortOrder.LayoutOrder}, host)
 			for i, o in ipairs(row.o) do
 				local b = new("TextButton", {Text = o, TextSize = 12, Font = FONT, TextXAlignment = Enum.TextXAlignment.Left, AutoButtonColor = false,
 					TextColor3 = i == row.val and C.accent or C.t2, BackgroundColor3 = C.white, BackgroundTransparency = 1,
-					Size = UDim2.new(1, 0, 0, 28), LayoutOrder = i}, menu)
+					Size = UDim2.new(1, 0, 0, 28), LayoutOrder = i}, host)
 				corner(b, 4)
 				new("UIPadding", {PaddingLeft = UDim.new(0, 8)}, b)
 				b.MouseEnter:Connect(function() b.BackgroundTransparency = .94; if i ~= row.val then b.TextColor3 = C.t1 end end)
