@@ -7,10 +7,15 @@ local lp = Players.LocalPlayer
 local espEnabled = false
 local cfg = {
 	box=true, hpBar=true, hpNum=true, distance=true, nickname=true, skeleton=true,
-	maxDist=500, hpPos="Right", armorBar=true,
+	maxDist=500, hpPos="Right", armorBar=true, weapon=true, arrows=true, visCheck=true,
+	visColor=Color3.fromRGB(80,255,120), hidColor=Color3.fromRGB(255,70,70), arrowColor=Color3.fromRGB(255,70,70),
 	cornerColor=Color3.fromRGB(124,240,208), skelColor=Color3.new(1,1,1),
 }
 local HP_POS = {"Left","Right","Top","Bottom"}
+local COLOR_OPTS = {
+	Color3.fromRGB(255,255,255), Color3.fromRGB(124,240,208), Color3.fromRGB(80,255,120), Color3.fromRGB(255,70,70),
+	Color3.fromRGB(255,225,70), Color3.fromRGB(80,140,255), Color3.fromRGB(255,110,200), Color3.fromRGB(255,150,50),
+}
 local PRESETS = {
 	{skeleton=false, cornerColor=Color3.new(1,1,1)},
 	{skeleton=true, cornerColor=Color3.fromRGB(124,240,208)},
@@ -59,6 +64,9 @@ local function makeObj(z)
 	o.hpNum = txt(11)
 	o.dist = txt(11)
 	o.dist.Color = Color3.fromRGB(170, 178, 195)
+	o.weapon = txt(10)
+	o.weapon.Color = Color3.fromRGB(150, 158, 175)
+	o.arrow = reg(newDraw("Triangle", {Filled=true, Transparency=0.9, Visible=false, ZIndex=z + 1}))
 	return o
 end
 
@@ -68,16 +76,15 @@ end
 
 local function renderObj(o, d)
 	local top, bot, cx, hw = d.top, d.bot, d.cx, d.hw
-	local compact = (bot - top) < 40
-	if compact then
-		local cy0 = (top + bot) / 2
-		top, bot, hw = cy0 - 7, cy0 + 7, 7
-	end
+	local compact = false
+	local far = (bot - top) < 45
 	local cy = (top + bot) / 2
 	local l, r, h = cx - hw, cx + hw, bot - top
 	local col = hpColor(d.hp)
 	local pos = cfg.hpPos
 	local th, gap = 3, 5
+	o.arrow.Visible = false
+	local cc = cfg.visCheck and (d.vis and cfg.visColor or cfg.hidColor) or cfg.cornerColor
 	local armor = (cfg.armorBar and d.armor and d.armor > 0) and math.clamp(d.armor / 100, 0, 1) or nil
 
 	for i = 1, 8 do
@@ -85,7 +92,7 @@ local function renderObj(o, d)
 		o.cOut[i].Visible = cfg.box
 	end
 	if cfg.box then
-		local L = compact and 5 or math.clamp(h * 0.18, 6, 14)
+		local L = math.min(math.clamp(h * 0.18, 6, 14), h * 0.3)
 		local q = {{l, top, 1, 1}, {r, top, -1, 1}, {l, bot, 1, -1}, {r, bot, -1, -1}}
 		for i = 1, 4 do
 			local c = q[i]
@@ -97,8 +104,8 @@ local function renderObj(o, d)
 			o.c[i2].From, o.c[i2].To = a, vEnd
 			o.cOut[i1].From, o.cOut[i1].To = a, hEnd
 			o.cOut[i2].From, o.cOut[i2].To = a, vEnd
-			o.c[i1].Color = cfg.cornerColor
-			o.c[i2].Color = cfg.cornerColor
+			o.c[i1].Color = cc
+			o.c[i2].Color = cc
 		end
 	end
 
@@ -167,20 +174,31 @@ local function renderObj(o, d)
 	local barTop = (not compact and cfg.hpBar and pos == "Top") and (gap + th + armExtra) or 0
 	local barBot = (not compact and cfg.hpBar and pos == "Bottom") and (gap + th + armExtra) or 0
 
-	o.name.Visible = cfg.nickname
-	if cfg.nickname then
-		o.name.Text = d.name
-		o.name.Position = Vector2.new(cx, top - 16 - barTop)
+	o.name.Size = far and 10 or 13
+	o.name.Visible = far and (cfg.nickname or cfg.distance) or cfg.nickname
+	if o.name.Visible then
+		if far then
+			o.name.Text = cfg.nickname and (d.name .. (cfg.distance and (" " .. d.dist .. "m") or "")) or (d.dist .. "m")
+		else
+			o.name.Text = d.name
+		end
+		o.name.Position = Vector2.new(cx, top - (far and 13 or 16) - barTop)
 	end
 
-	o.dist.Visible = cfg.distance
-	if cfg.distance then
+	o.dist.Visible = cfg.distance and not far
+	if o.dist.Visible then
 		o.dist.Text = d.dist .. "m"
 		o.dist.Position = Vector2.new(cx, bot + 3 + barBot)
 	end
 
-	o.hpNum.Visible = cfg.hpNum
-	if cfg.hpNum then
+	o.weapon.Visible = cfg.weapon and d.weapon ~= nil and not far
+	if o.weapon.Visible then
+		o.weapon.Text = d.weapon
+		o.weapon.Position = Vector2.new(cx, bot + 3 + barBot + (cfg.distance and 12 or 0))
+	end
+
+	o.hpNum.Visible = cfg.hpNum and not far
+	if o.hpNum.Visible then
 		o.hpNum.Text = tostring(d.hpn)
 		local px, py
 		if compact then px, py = r + 24, cy - 7
@@ -191,7 +209,7 @@ local function renderObj(o, d)
 	end
 
 	for i = 1, MAXB do
-		local b = (cfg.skeleton and not compact and d.bones) and d.bones[i]
+		local b = (cfg.skeleton and (bot - top) >= 60 and d.bones) and d.bones[i]
 		local ln = o.bones[i]
 		if b then
 			ln.From = Vector2.new(b[1], b[2])
@@ -231,6 +249,32 @@ Players.PlayerAdded:Connect(function(p)
 end)
 Players.PlayerRemoving:Connect(removeESP)
 
+local visParams = RaycastParams.new()
+visParams.FilterType = Enum.RaycastFilterType.Exclude
+
+local function isVisible(cam, char, head)
+	visParams.FilterDescendantsInstances = {lp.Character}
+	local origin = cam.CFrame.Position
+	local res = workspace:Raycast(origin, head.Position - origin, visParams)
+	return res == nil or res.Instance:IsDescendantOf(char)
+end
+
+local function drawArrow(o, cam, pos, show)
+	local ar = o.arrow
+	if not show then ar.Visible = false return end
+	local vs = cam.ViewportSize
+	local rel = cam.CFrame:PointToObjectSpace(pos)
+	local dir = Vector2.new(rel.X, -rel.Y)
+	dir = dir.Magnitude > 1e-3 and dir.Unit or Vector2.new(0, 1)
+	local bc = vs / 2 + dir * (math.min(vs.X, vs.Y) * 0.4)
+	local perp = Vector2.new(-dir.Y, dir.X)
+	ar.PointA = bc + dir * 14
+	ar.PointB = bc + perp * 8
+	ar.PointC = bc - perp * 8
+	ar.Color = cfg.arrowColor
+	ar.Visible = true
+end
+
 local function getArmor(char)
 	local be = char:FindFirstChild("BodyEffects")
 	local a = be and be:FindFirstChild("Armor")
@@ -260,6 +304,14 @@ RunService.RenderStepped:Connect(function()
 			continue
 		end
 
+		local rp3 = cam:WorldToViewportPoint(root.Position)
+		local vs = cam.ViewportSize
+		if rp3.Z <= 0 or rp3.X < 0 or rp3.X > vs.X or rp3.Y < 0 or rp3.Y > vs.Y then
+			hideObj(o)
+			drawArrow(o, cam, root.Position, cfg.arrows)
+			continue
+		end
+
 		local hp = cam:WorldToViewportPoint(head.Position + Vector3.new(0, 0.7, 0))
 		local fp = cam:WorldToViewportPoint(root.Position - Vector3.new(0, 3, 0))
 		if not (hp.Z > 0 and fp.Z > 0) then
@@ -285,7 +337,9 @@ RunService.RenderStepped:Connect(function()
 			end
 		end
 
+		local tool = cfg.weapon and char:FindFirstChildOfClass("Tool")
 		renderObj(o, {
+			vis = (not cfg.visCheck) or isVisible(cam, char, head), weapon = tool and tool.Name or nil,
 			top = top, bot = bot, cx = (hp.X + fp.X) / 2, hw = (bot - top) * 0.275,
 			hp = math.clamp(hum.Health / math.max(hum.MaxHealth, 1), 0, 1),
 			hpn = math.floor(hum.Health), dist = dist, name = p.DisplayName, bones = bl, armor = getArmor(char),
@@ -448,8 +502,8 @@ local LANG_ALIAS = {
 }
 
 local EXTRA = {
-	ru = {["Skeleton"]="Скелет",["HP position"]="Позиция HP",["Left"]="Слева",["Right"]="Справа",["Top"]="Сверху",["Bottom"]="Снизу",["Corners"]="Углы",["Corners + skeleton"]="Углы + скелет",["ESP preview"]="Предпросмотр ESP",["Armor bar"]="Броня"},
-	uk = {["Skeleton"]="Скелет",["HP position"]="Позиція HP",["Left"]="Ліворуч",["Right"]="Праворуч",["Top"]="Зверху",["Bottom"]="Знизу",["Corners"]="Кути",["Corners + skeleton"]="Кути + скелет",["ESP preview"]="Попередній перегляд ESP",["Armor bar"]="Броня"},
+	ru = {["Skeleton"]="Скелет",["HP position"]="Позиция HP",["Left"]="Слева",["Right"]="Справа",["Top"]="Сверху",["Bottom"]="Снизу",["Corners"]="Углы",["Corners + skeleton"]="Углы + скелет",["ESP preview"]="Предпросмотр ESP",["Armor bar"]="Броня",["Weapon"]="Оружие",["Arrows"]="Стрелки",["Vis check"]="Видимость",["Corner color"]="Цвет углов",["Visible color"]="Цвет видимого",["Hidden color"]="Цвет за стеной",["Arrow color"]="Цвет стрелок",["White"]="Белый",["Mint"]="Мятный",["Green"]="Зелёный",["Red"]="Красный",["Yellow"]="Жёлтый",["Blue"]="Синий",["Pink"]="Розовый",["Orange"]="Оранжевый",["Combat"]="Бой",["Bullet tracer"]="Трассер пуль",["Tracer color"]="Цвет трассера",["Tracer time"]="Время трассера",["Hit effect"]="Эффект попадания",["Hit color"]="Цвет эффекта",["Damage numbers"]="Числа урона",["Hit marker"]="Хит-маркер",["Headshot color"]="Цвет хедшота",["Zoom FOV"]="FOV зума"},
+	uk = {["Skeleton"]="Скелет",["HP position"]="Позиція HP",["Left"]="Ліворуч",["Right"]="Праворуч",["Top"]="Зверху",["Bottom"]="Знизу",["Corners"]="Кути",["Corners + skeleton"]="Кути + скелет",["ESP preview"]="Попередній перегляд ESP",["Armor bar"]="Броня",["Weapon"]="Зброя",["Arrows"]="Стрілки",["Vis check"]="Видимість",["Corner color"]="Колір кутів",["Visible color"]="Колір видимого",["Hidden color"]="Колір за стіною",["Arrow color"]="Колір стрілок",["White"]="Білий",["Mint"]="М'ятний",["Green"]="Зелений",["Red"]="Червоний",["Yellow"]="Жовтий",["Blue"]="Синій",["Pink"]="Рожевий",["Orange"]="Помаранчевий",["Combat"]="Бій",["Bullet tracer"]="Трасер куль",["Tracer color"]="Колір трасера",["Tracer time"]="Час трасера",["Hit effect"]="Ефект влучання",["Hit color"]="Колір ефекту",["Damage numbers"]="Числа шкоди",["Hit marker"]="Хіт-маркер",["Headshot color"]="Колір хедшота",["Zoom FOV"]="FOV зуму"},
 }
 for code, tbl in pairs(EXTRA) do
 	for k, v in pairs(tbl) do LANG[code][k] = v end
@@ -521,13 +575,13 @@ do
 			["Radius"]="Радиус",["Closest"]="Ближайшая",["Head"]="Голова",["Torso"]="Торс",
 			["Bullet mods"]="Модификации пуль",["Wallbang"]="Wallbang",["Instant hit"]="Мгновенный хит",["Touch button"]="Кнопка для телефона",["Auto"]="Авто",
 			["Dead check"]="Проверка смерти",["Team check"]="Проверка команды",["Target priority"]="Приоритет цели",["Health"]="Здоровье",["Hit chance"]="Шанс попадания",["Prediction"]="Упреждение",["Sticky target"]="Липкая цель",["Triggerbot"]="Триггербот",["Delay"]="Задержка",["Target info"]="Инфо о цели",["Position"]="Позиция",["Top"]="Сверху",["Right"]="Справа",["Bottom"]="Снизу",
-			["Auto prediction"]="Авто-упреждение",["Weapon profiles"]="Профили оружия",["Override"]="Переопределить",["Revolver"]="Револьвер",["Shotgun"]="Дробовик",["Rifle"]="Винтовка",["Hit sound"]="Звук попадания",["Hit"]="Попадание",["Knock"]="Нокаут",["Spectate"]="Наблюдение",["Off"]="Выкл"},
+			["Auto prediction"]="Авто-упреждение",["Weapon profiles"]="Профили оружия",["Override"]="Переопределить",["Revolver"]="Револьвер",["Shotgun"]="Дробовик",["Rifle"]="Винтовка",["Hit sound"]="Звук попадания",["Hit"]="Попадание",["Knock"]="Нокаут",["Spectate"]="Наблюдение",["Off"]="Выкл",["Fake macro"]="Фейк макро",["Speed"]="Скорость",["No slowdown"]="Без замедления",["Hit log"]="Лог попаданий",["Resolver"]="Резолвер",["Jump offset"]="Смещение в прыжке",["Humanize"]="Хуманизация"},
 		uk = {["Silent aim"]="Silent aim",["Aimbot"]="Аімбот",["Wall check"]="Перевірка стін",["Target part"]="Частина тіла",
 			["Target snapline"]="Лінія до цілі",["Whitelist"]="Білий список",["FOV settings"]="Налаштування FOV",["Show circle"]="Показати коло",
 			["Radius"]="Радіус",["Closest"]="Найближча",["Head"]="Голова",["Torso"]="Торс",
 			["Bullet mods"]="Модифікації куль",["Wallbang"]="Wallbang",["Instant hit"]="Миттєвий хіт",["Touch button"]="Кнопка для телефона",["Auto"]="Авто",
 			["Dead check"]="Перевірка смерті",["Team check"]="Перевірка команди",["Target priority"]="Пріоритет цілі",["Health"]="Здоров'я",["Hit chance"]="Шанс влучання",["Prediction"]="Упередження",["Sticky target"]="Липка ціль",["Triggerbot"]="Тригербот",["Delay"]="Затримка",["Target info"]="Інфо про ціль",["Position"]="Позиція",["Top"]="Зверху",["Right"]="Справа",["Bottom"]="Знизу",
-			["Auto prediction"]="Авто-упередження",["Weapon profiles"]="Профілі зброї",["Override"]="Перевизначити",["Revolver"]="Револьвер",["Shotgun"]="Дробовик",["Rifle"]="Гвинтівка",["Hit sound"]="Звук влучання",["Hit"]="Влучання",["Knock"]="Нокаут",["Spectate"]="Спостереження",["Off"]="Вимк"},
+			["Auto prediction"]="Авто-упередження",["Weapon profiles"]="Профілі зброї",["Override"]="Перевизначити",["Revolver"]="Револьвер",["Shotgun"]="Дробовик",["Rifle"]="Гвинтівка",["Hit sound"]="Звук влучання",["Hit"]="Влучання",["Knock"]="Нокаут",["Spectate"]="Спостереження",["Off"]="Вимк",["Fake macro"]="Фейк макро",["Speed"]="Швидкість",["No slowdown"]="Без уповільнення",["Hit log"]="Лог влучань",["Resolver"]="Резолвер",["Jump offset"]="Зміщення у стрибку",["Humanize"]="Хуманізація"},
 	}
 	for code, add in pairs(ADD) do
 		LANG[code] = LANG[code] or {}
@@ -586,7 +640,7 @@ local C_BG, C_PV = Color3.fromRGB(18,20,26), Color3.fromRGB(13,15,20)
 local C_OFF, C_ON, C_TXT = Color3.fromRGB(30,34,44), Color3.fromRGB(34,150,124), Color3.fromRGB(225,229,238)
 
 local panel = Instance.new("Frame")
-panel.Size = UDim2.fromOffset(PW, 480)
+panel.Size = UDim2.fromOffset(PW, 510)
 panel.Position = UDim2.fromOffset(math.max(workspace.CurrentCamera.ViewportSize.X - PW - 20, 0), 60)
 panel.BackgroundColor3 = C_BG
 panel.BorderSizePixel = 0
@@ -683,7 +737,7 @@ for i, name in ipairs(HP_POS) do
 	mkBtn(8 + (i - 1) * 67, 378, 63, name, function() cfg.hpPos = name end, function() return cfg.hpPos == name end)
 end
 
-local TOGGLES = {{"Box","box"},{"HpBar","hpBar"},{"hpNum","hpNum"},{"Distance","distance"},{"Nickname","nickname"},{"Skeleton","skeleton"}}
+local TOGGLES = {{"Box","box"},{"HpBar","hpBar"},{"hpNum","hpNum"},{"Distance","distance"},{"Nickname","nickname"},{"Skeleton","skeleton"},{"Weapon","weapon"},{"Arrows","arrows"},{"Vis check","visCheck"}}
 for i, t in ipairs(TOGGLES) do
 	local col, row = (i - 1) % 3, math.floor((i - 1) / 3)
 	mkBtn(8 + col * 89, 412 + row * 30, 85, t[1], function() cfg[t[2]] = not cfg[t[2]] end, function() return cfg[t[2]] end)
@@ -802,6 +856,7 @@ RunService.RenderStepped:Connect(function()
 	renderObj(pvObj, {
 		top = top, bot = bot, cx = ox, hw = (bot - top) * 0.275,
 		hp = hp, hpn = math.floor(hp * 100), dist = 24, name = lp.DisplayName, bones = bones, armor = 60 + 40 * math.sin(t * 0.5),
+		vis = (math.floor(t / 3) % 2 == 0), weapon = "AK-47",
 	})
 end)
 
@@ -956,6 +1011,39 @@ do
 		return out
 	end
 
+	-- Resolver: скорость цели считается по реальному смещению позиции, а не по velocity
+	local track = setmetatable({}, {__mode = "k"})
+	local function trackStep(dt)
+		dt = math.max(dt, 1 / 240)
+		for _, p in ipairs(Players:GetPlayers()) do
+			local ch = p.Character
+			local root = p ~= lp and ch and ch:FindFirstChild("HumanoidRootPart")
+			if root then
+				local r = track[ch]
+				local pos = root.Position
+				if not r then
+					track[ch] = {pos = pos, vel = Vector3.zero, ok = false}
+				else
+					local d = pos - r.pos
+					if d.Magnitude > 60 then
+						r.vel, r.ok = Vector3.zero, false
+					else
+						r.vel = r.vel:Lerp(d / dt, math.min(1, dt * 18))
+						r.ok = true
+					end
+					r.pos = pos
+				end
+			end
+		end
+	end
+	local function velOf(ch, root, res)
+		if res then
+			local r = track[ch]
+			if r and r.ok then return r.vel end
+		end
+		return root.AssemblyLinearVelocity
+	end
+
 	-- o: {dist, mode (1 Head/2 Torso/3 Closest), prio (1 Crosshair/2 Distance/3 Health), wall, fov, dead, team, pred (ms), only}
 	local function pick(cam, center, o)
 		local origin = cam.CFrame.Position
@@ -980,8 +1068,9 @@ do
 										local pos = part.Position
 										if o.pred and o.pred > 0 then
 											local root = ch:FindFirstChild("HumanoidRootPart")
-											if root then pos = pos + root.AssemblyLinearVelocity * (o.pred / 1000) end
+											if root then pos = pos + velOf(ch, root, o.res) * (o.pred / 1000) end
 										end
+										if o.jump and o.jump ~= 0 and hum.FloorMaterial == Enum.Material.Air then pos = pos + Vector3.new(0, o.jump, 0) end
 										best = {part = part, pos = pos, screen = scr, char = ch}
 										bestScore = score
 									end
@@ -1016,8 +1105,9 @@ do
 					local pos = part.Position
 					if o.pred and o.pred > 0 then
 						local root = ch:FindFirstChild("HumanoidRootPart")
-						if root then pos = pos + root.AssemblyLinearVelocity * (o.pred / 1000) end
+						if root then pos = pos + velOf(ch, root, o.res) * (o.pred / 1000) end
 					end
+					if o.jump and o.jump ~= 0 and hum.FloorMaterial == Enum.Material.Air then pos = pos + Vector3.new(0, o.jump, 0) end
 					best = {part = part, pos = pos, screen = scr, char = ch}
 					bestD = d
 				end
@@ -1162,16 +1252,16 @@ do
 		end))
 	end
 
-	----------------------------------------------------------- touch button (телефон): Pill, перетаскивается
-	local touchOn = false
-	local tbGui, tbApply, tbShown
+	----------------------------------------------------------- touch-кнопки (телефон): Pill, перетаскиваются
+	local touchOn, macroOn = false, false
 	local ICON_IDLE = Color3.fromHex("C4C4C9")
 	local KNOB_IDLE = Color3.fromHex("D0D0D4")
 	local WHITE = Color3.new(1, 1, 1)
 
-	local function buildTouch()
-		tbGui, tbApply, tbShown = newGui("DramaAimTouch", 1001), nil, nil
-		if not tbGui then return end
+	-- kind: "aim" (иконка прицела) или "macro" (»). Возвращает {gui, apply}
+	local function buildPill(name, pos, kind, onTap)
+		local gui = newGui(name, 1001)
+		if not gui then return nil end
 		local TweenService = game:GetService("TweenService")
 		local function frame(parent, props, round)
 			local f = Instance.new("Frame")
@@ -1190,12 +1280,12 @@ do
 		b.Text = ""
 		b.AutoButtonColor = false
 		b.AnchorPoint = Vector2.new(.5, .5)
-		b.Position = UDim2.fromScale(.84, .6)
+		b.Position = pos
 		b.Size = UDim2.fromOffset(94, 42)
 		b.BackgroundColor3 = Color3.fromHex("121214")
 		b.BackgroundTransparency = 0.4
 		b.BorderSizePixel = 0
-		b.Parent = tbGui
+		b.Parent = gui
 		local bc = Instance.new("UICorner")
 		bc.CornerRadius = UDim.new(1, 0)
 		bc.Parent = b
@@ -1205,34 +1295,44 @@ do
 		st.Transparency = 0.86
 		st.Parent = b
 
-		-- иконка прицела
 		local icon = frame(b, {AnchorPoint = Vector2.new(0, .5), Position = UDim2.new(0, 14, .5, 0),
 			Size = UDim2.fromOffset(22, 22), BackgroundTransparency = 1})
-		local ring = frame(icon, {AnchorPoint = Vector2.new(.5, .5), Position = UDim2.fromScale(.5, .5),
-			Size = UDim2.fromOffset(13, 13), BackgroundTransparency = 1}, true)
-		local rs = Instance.new("UIStroke")
-		rs.Thickness = 1.5
-		rs.Color = ICON_IDLE
-		rs.Parent = ring
-		local parts = {}
-		local function tick(x, y, w, h)
-			parts[#parts + 1] = frame(icon, {AnchorPoint = Vector2.new(.5, .5), Position = UDim2.fromOffset(x, y),
-				Size = UDim2.fromOffset(w, h), BackgroundColor3 = ICON_IDLE})
+		local parts, rs, lbl = {}, nil, nil
+		if kind == "macro" then
+			lbl = Instance.new("TextLabel")
+			lbl.BackgroundTransparency = 1
+			lbl.Size = UDim2.fromScale(1, 1)
+			lbl.Text = "»"
+			lbl.Font = Enum.Font.GothamBold
+			lbl.TextSize = 26
+			lbl.TextColor3 = ICON_IDLE
+			lbl.Parent = icon
+		else
+			local ring = frame(icon, {AnchorPoint = Vector2.new(.5, .5), Position = UDim2.fromScale(.5, .5),
+				Size = UDim2.fromOffset(13, 13), BackgroundTransparency = 1}, true)
+			rs = Instance.new("UIStroke")
+			rs.Thickness = 1.5
+			rs.Color = ICON_IDLE
+			rs.Parent = ring
+			local function tick(x, y, w, h)
+				parts[#parts + 1] = frame(icon, {AnchorPoint = Vector2.new(.5, .5), Position = UDim2.fromOffset(x, y),
+					Size = UDim2.fromOffset(w, h), BackgroundColor3 = ICON_IDLE})
+			end
+			tick(11, 2, 2, 4); tick(11, 20, 2, 4); tick(2, 11, 4, 2); tick(20, 11, 4, 2)
+			parts[#parts + 1] = frame(icon, {AnchorPoint = Vector2.new(.5, .5), Position = UDim2.fromScale(.5, .5),
+				Size = UDim2.fromOffset(3, 3), BackgroundColor3 = ICON_IDLE}, true)
 		end
-		tick(11, 2, 2, 4); tick(11, 20, 2, 4); tick(2, 11, 4, 2); tick(20, 11, 4, 2)
-		parts[#parts + 1] = frame(icon, {AnchorPoint = Vector2.new(.5, .5), Position = UDim2.fromScale(.5, .5),
-			Size = UDim2.fromOffset(3, 3), BackgroundColor3 = ICON_IDLE}, true)
 
-		-- переключатель
 		local track = frame(b, {AnchorPoint = Vector2.new(1, .5), Position = UDim2.new(1, -9, .5, 0),
 			Size = UDim2.fromOffset(36, 22), BackgroundColor3 = WHITE, BackgroundTransparency = 0.86}, true)
 		local knob = frame(track, {AnchorPoint = Vector2.new(0, .5), Position = UDim2.new(0, 3, .5, 0),
 			Size = UDim2.fromOffset(16, 16), BackgroundColor3 = KNOB_IDLE}, true)
 
 		local ti = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-		tbApply = function(on)
+		local function apply(on)
 			local c = on and ACCENT or ICON_IDLE
-			TweenService:Create(rs, ti, {Color = c}):Play()
+			if rs then TweenService:Create(rs, ti, {Color = c}):Play() end
+			if lbl then TweenService:Create(lbl, ti, {TextColor3 = c}):Play() end
 			for _, p in ipairs(parts) do TweenService:Create(p, ti, {BackgroundColor3 = c}):Play() end
 			TweenService:Create(st, ti, {Color = on and ACCENT or WHITE, Transparency = on and 0.4 or 0.86}):Play()
 			TweenService:Create(track, ti, {BackgroundColor3 = on and ACCENT or WHITE, BackgroundTransparency = on and 0.65 or 0.86}):Play()
@@ -1264,11 +1364,29 @@ do
 		end)
 		b.Activated:Connect(function()
 			if moved then moved = false; return end
-			touchOn = not touchOn
+			onTap()
 		end)
+		return {gui = gui, apply = apply}
 	end
 
-	-- авто-детект: кнопка только на телефоне/планшете без клавиатуры
+	-- слот кнопки: создаёт при необходимости, показывает/прячет, обновляет вид
+	local function pillStep(slot, wanted, state, name, pos, kind, onTap)
+		if wanted then
+			if not slot.gui or not slot.gui.Parent or not slot.apply then
+				local r = buildPill(name, pos, kind, onTap)
+				slot.gui, slot.apply, slot.shown = r and r.gui, r and r.apply, nil
+			end
+			if slot.gui and slot.apply then
+				slot.gui.Enabled = true
+				if slot.shown ~= state then slot.shown = state; slot.apply(state) end
+			end
+		elseif slot.gui then
+			slot.gui.Enabled = false
+		end
+	end
+	local pAim, pMac = {}, {}
+
+	-- авто-детект: кнопки только на телефоне/планшете без клавиатуры
 	local function touchWanted()
 		return UIS.TouchEnabled and not UIS.KeyboardEnabled
 	end
@@ -1284,6 +1402,7 @@ do
 		end
 		if gp then return end
 		if ON("Aim/Aimbot") and hit(V("Aim/Aimbot/Hotkey", "Mouse 2"), input) then aimHeld = true end
+		if ON("Player/Fake macro") and hit(V("Player/Fake macro/Hotkey", "X"), input) then macroOn = not macroOn end
 	end)
 	UIS.InputEnded:Connect(function(input)
 		local ut = input.UserInputType
@@ -1389,6 +1508,99 @@ do
 		return nil
 	end
 
+	----------------------------------------------------------- hit log
+	local logGui, logList
+	local logN = 0
+	local function logBuild()
+		logGui = newGui("DramaHitLog", 1003)
+		logList = nil
+		if not logGui then return end
+		local f = Instance.new("Frame")
+		f.BackgroundTransparency = 1
+		f.AutomaticSize = Enum.AutomaticSize.XY
+		f.Size = UDim2.fromOffset(0, 0)
+		f.Parent = logGui
+		local l = Instance.new("UIListLayout")
+		l.Padding = UDim.new(0, 4)
+		l.SortOrder = Enum.SortOrder.LayoutOrder
+		l.Parent = f
+		logList = f
+	end
+	local function logAdd(rich)
+		if not ON("Aim/Hit log") then return end
+		if not logGui or not logGui.Parent or not logList then logBuild() end
+		if not logList then return end
+		local pos = V("Aim/Hit log/Position", 1)
+		local lay = logList:FindFirstChildOfClass("UIListLayout")
+		if pos == 2 then
+			logList.AnchorPoint, logList.Position = Vector2.new(1, .5), UDim2.new(1, -12, .45, 0)
+			lay.HorizontalAlignment = Enum.HorizontalAlignment.Right
+		elseif pos == 3 then
+			logList.AnchorPoint, logList.Position = Vector2.new(.5, 0), UDim2.new(.5, 0, 0, 96)
+			lay.HorizontalAlignment = Enum.HorizontalAlignment.Center
+		else
+			logList.AnchorPoint, logList.Position = Vector2.new(0, .5), UDim2.new(0, 12, .45, 0)
+			lay.HorizontalAlignment = Enum.HorizontalAlignment.Left
+		end
+		logN += 1
+		local e = Instance.new("Frame")
+		e.LayoutOrder = logN
+		e.AutomaticSize = Enum.AutomaticSize.XY
+		e.Size = UDim2.fromOffset(0, 0)
+		e.BackgroundColor3 = Color3.fromHex("121214")
+		e.BackgroundTransparency = 0.35
+		e.BorderSizePixel = 0
+		e.Parent = logList
+		local uc = Instance.new("UICorner")
+		uc.CornerRadius = UDim.new(0, 8)
+		uc.Parent = e
+		local st = Instance.new("UIStroke")
+		st.Thickness = 1
+		st.Color = WHITE
+		st.Transparency = 0.88
+		st.Parent = e
+		local pd = Instance.new("UIPadding")
+		pd.PaddingLeft, pd.PaddingRight = UDim.new(0, 10), UDim.new(0, 10)
+		pd.PaddingTop, pd.PaddingBottom = UDim.new(0, 6), UDim.new(0, 6)
+		pd.Parent = e
+		local t = Instance.new("TextLabel")
+		t.AutomaticSize = Enum.AutomaticSize.XY
+		t.Size = UDim2.fromOffset(0, 0)
+		t.BackgroundTransparency = 1
+		t.RichText = true
+		t.Font = Enum.Font.GothamMedium
+		t.TextSize = 13
+		t.TextColor3 = Color3.fromHex("F2F2F2")
+		t.Text = rich
+		t.Parent = e
+		local frames = {}
+		for _, c in ipairs(logList:GetChildren()) do
+			if c:IsA("Frame") then frames[#frames + 1] = c end
+		end
+		table.sort(frames, function(a, b) return a.LayoutOrder < b.LayoutOrder end)
+		while #frames > 6 do table.remove(frames, 1):Destroy() end
+		task.delay(math.clamp(V("Aim/Hit log/Duration", 4), 1, 10), function()
+			if not e.Parent then return end
+			local ti = TweenInfo.new(0.4)
+			game:GetService("TweenService"):Create(e, ti, {BackgroundTransparency = 1}):Play()
+			game:GetService("TweenService"):Create(t, ti, {TextTransparency = 1}):Play()
+			game:GetService("TweenService"):Create(st, ti, {Transparency = 1}):Play()
+			task.delay(0.45, function() if e.Parent then e:Destroy() end end)
+		end)
+	end
+	local function nameOf(ch)
+		local p = Players:GetPlayerFromCharacter(ch)
+		return p and p.Name or ch.Name
+	end
+	local function logHit(ch, amount, kind)
+		local part = "-"
+		if S.tchar == ch and S.part then part = (S.part.Name == "Head") and "Head" or "Body" end
+		logAdd('<font color="#E5312B">HIT</font>  ' .. nameOf(ch) .. '  <font color="#9A9AA1">-' .. math.floor(amount + 0.5) .. ' ' .. kind .. ' · ' .. part .. '</font>')
+	end
+	local function logKnock(ch)
+		logAdd('<font color="#E5312B">KNOCK</font>  ' .. nameOf(ch))
+	end
+
 	----------------------------------------------------------- hit sound
 	local SoundService = game:GetService("SoundService")
 	local Debris = game:GetService("Debris")
@@ -1442,6 +1654,7 @@ do
 		if now - (lastKnock[ch] or -10) < 1.5 then return end
 		if now - (lastHit[ch] or -10) < 2.5 then
 			lastKnock[ch] = now
+			logKnock(ch)
 			playHit(true)
 		end
 	end
@@ -1449,9 +1662,10 @@ do
 		local hum = ch:WaitForChild("Humanoid", 5)
 		if not hum then return end
 		local last = hum.Health
-		local function damaged()
+		local function damaged(amount, kind)
 			if (S.firing or os.clock() - S.lastFire < 0.6) and (S.tchar == ch or nearCenter(ch)) then
 				lastHit[ch] = os.clock()
+				logHit(ch, amount, kind)
 				playHit(false)
 				return true
 			end
@@ -1461,7 +1675,7 @@ do
 			local d = last - h
 			last = h
 			if d > 0 then
-				if damaged() and h <= 0 then knockSound(ch) end
+				if damaged(d, "HP") and h <= 0 then knockSound(ch) end
 			end
 		end)
 		local be = ch:WaitForChild("BodyEffects", 5)
@@ -1478,7 +1692,7 @@ do
 				armor:GetPropertyChangedSignal("Value"):Connect(function()
 					local d = la - armor.Value
 					la = armor.Value
-					if d > 0 then damaged() end
+					if d > 0 then damaged(d, "Armor") end
 				end)
 			end
 		end
@@ -1540,6 +1754,33 @@ do
 		return false
 	end
 
+	----------------------------------------------------------- No slowdown (Da Hood: BodyEffects.Movement)
+	local NOSLOW = {NoWalkSpeed = true, ReduceWalk = true, NoJumping = true}
+	local moveFolder
+	local sweepT = 0
+	local function sweepMove()
+		if not moveFolder or not moveFolder.Parent then return end
+		if not (ON("Player/Movement") and V("Player/Movement/No slowdown", false)) then return end
+		for _, o in ipairs(moveFolder:GetChildren()) do
+			if NOSLOW[o.Name] then pcall(function() o:Destroy() end) end
+		end
+	end
+	local function hookMove(ch)
+		moveFolder = nil
+		task.spawn(function()
+			local be = ch:WaitForChild("BodyEffects", 10)
+			local mv = be and be:WaitForChild("Movement", 10)
+			if not mv then return end
+			moveFolder = mv
+			sweepMove()
+			mv.ChildAdded:Connect(function(o)
+				if NOSLOW[o.Name] then task.defer(sweepMove) end
+			end)
+		end)
+	end
+	if lp.Character then hookMove(lp.Character) end
+	lp.CharacterAdded:Connect(hookMove)
+
 	local indexed = false
 	local stickyChar
 	local function update(dt)
@@ -1554,6 +1795,8 @@ do
 		local center = Vector2.new(vp.X / 2, vp.Y / 2)
 		if S.firing and os.clock() - rollT > 0.25 then rollHit() end
 		updPing(dt)
+		if V("Aim/Aimbot/Resolver", false) or V("Aim/Silent aim/Resolver", false) then trackStep(dt) end
+		if os.clock() - sweepT > 0.2 then sweepT = os.clock(); sweepMove() end
 		local spec = specUpdate(cam)
 		local wclass = weaponClass(lp.Character and lp.Character:FindFirstChildOfClass("Tool"))
 		local prof
@@ -1575,15 +1818,24 @@ do
 				fovCircle.Visible = false
 			end
 		end
-		if abOn and touchWanted() then
-			if not tbGui or not tbGui.Parent or not tbApply then buildTouch() end
-			if tbGui and tbApply then
-				tbGui.Enabled = true
-				if tbShown ~= touchOn then tbShown = touchOn; tbApply(touchOn) end
+		local tw = touchWanted()
+		pillStep(pAim, abOn and tw, touchOn, "DramaAimTouch", UDim2.fromScale(.84, .6), "aim", function() touchOn = not touchOn end)
+		if not (abOn and tw) then touchOn = false end
+
+		-- Fake macro (speed): включается кнопкой, ускорение через CFrame
+		local mOn = ON("Player/Fake macro")
+		if not mOn then macroOn = false end
+		pillStep(pMac, mOn and tw, macroOn, "DramaMacroTouch", UDim2.fromScale(.84, .74), "macro", function() macroOn = not macroOn end)
+		if mOn and macroOn then
+			local mch = lp.Character
+			local mh = mch and mch:FindFirstChildOfClass("Humanoid")
+			local mr = mch and mch:FindFirstChild("HumanoidRootPart")
+			if mh and mr and mh.Health > 0 and not mh.Sit then
+				local md = mh.MoveDirection
+				if md.Magnitude > 0.01 then
+					mr.CFrame = mr.CFrame + md.Unit * (V("Player/Fake macro/Speed", 20) * math.min(dt, 0.1))
+				end
 			end
-		else
-			touchOn = false
-			if tbGui then tbGui.Enabled = false end
 		end
 		if not abOn then aimHeld = false; touchOn = false end
 		if abOn and (aimHeld or touchOn) then
@@ -1596,6 +1848,8 @@ do
 				dead = V("Aim/Aimbot/Dead check", true),
 				team = V("Aim/Aimbot/Team check", false),
 				pred = predOf(prof and prof.pred or V("Aim/Aimbot/Prediction", 0), V("Aim/Aimbot/Auto prediction", false)),
+				res = V("Aim/Aimbot/Resolver", false),
+				jump = V("Aim/Aimbot/Jump offset", 0),
 			}
 			local sticky = V("Aim/Aimbot/Sticky target", false)
 			local t
@@ -1609,7 +1863,14 @@ do
 				local cf = cam.CFrame
 				local s = math.clamp(prof and prof.smooth or V("Aim/Aimbot/Smoothing", 25), 0, 95) / 100
 				local alpha = math.clamp(1 - s ^ (dt * 60), 0, 1)
-				cam.CFrame = cf:Lerp(CFrame.lookAt(cf.Position, t.pos), alpha)
+				local hz = V("Aim/Aimbot/Humanize", 0) / 100
+				local goal = CFrame.lookAt(cf.Position, t.pos)
+				if hz > 0 then
+					local tn = os.clock()
+					goal = goal * CFrame.Angles(math.noise(tn * 1.7, 0.3) * hz * 0.012, math.noise(tn * 1.3, 4.1) * hz * 0.012, 0)
+					alpha = math.clamp(alpha * (1 + math.noise(tn * 0.9, 9.7) * hz * 0.25), 0, 1)
+				end
+				cam.CFrame = cf:Lerp(goal, alpha)
 			end
 		else
 			stickyChar = nil
@@ -1637,11 +1898,20 @@ do
 				dead = V("Aim/Silent aim/Dead check", true),
 				team = V("Aim/Silent aim/Team check", false),
 				pred = predOf(prof and prof.pred or V("Aim/Silent aim/Prediction", 0), V("Aim/Silent aim/Auto prediction", false)),
+				res = V("Aim/Silent aim/Resolver", false),
+				jump = V("Aim/Silent aim/Jump offset", 0),
 			})
 			S.on = true
 			if not infoT then infoT = t end
 			if t then
-				S.pos, S.part = t.pos, t.part
+				local sh = V("Aim/Silent aim/Humanize", 0) / 100
+				if sh > 0 then
+					local tn = os.clock()
+					S.pos = t.pos + Vector3.new(math.noise(tn * 2.1, 1.3), math.noise(tn * 1.7, 2.9), math.noise(tn * 1.9, 5.1)) * (sh * 2.4)
+				else
+					S.pos = t.pos
+				end
+				S.part = t.part
 				if snapLine then
 					if V("Aim/Silent aim/Target snapline", true) then
 						snapLine.From = center
@@ -1679,6 +1949,361 @@ do
 	end)
 end
 
+----------------------------------------------------------------- COMBAT VISUALS + CAMERA ZOOM
+do
+	local ROWS, CARDS, ready = {}, {}, false
+	local function reindex()
+		local tabs = getgenv().DramaTABS
+		if type(tabs) ~= "table" then return end
+		local function walk(rows)
+			for _, r in ipairs(rows) do
+				if r.t == "g" then walk(r.rows) elseif r.path then ROWS[r.path] = r end
+			end
+		end
+		for _, tab in ipairs(tabs) do
+			for _, c in ipairs(tab.cards or {}) do
+				if c.path then CARDS[c.path] = c end
+				walk(c.rows or {})
+			end
+		end
+		ready = next(ROWS) ~= nil
+	end
+	local function V(path, def)
+		if not ready then reindex() end
+		local r = ROWS[path]
+		if r and r.val ~= nil then return r.val end
+		return def
+	end
+	local function ON(path)
+		if not ready then reindex() end
+		local c = CARDS[path]
+		return c ~= nil and c.enabled == true
+	end
+	local function colorOf(path, def)
+		return COLOR_OPTS[V(path, def)] or COLOR_OPTS[def]
+	end
+	local function hit(bind, input)
+		if type(bind) ~= "string" then return false end
+		local ut = input.UserInputType.Name
+		if ut == "MouseButton1" or ut == "MouseButton2" or ut == "MouseButton3" then
+			local short = ut:gsub("MouseButton", "Mouse")
+			return bind == ut or (bind:gsub("%s", "")) == short
+		end
+		return input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode.Name == bind
+	end
+
+	----------------------------------------------------------- shots / hits
+	local tracers, effects, numbers, markers = {}, {}, {}, {}
+	local lastShotT, lastTarget = 0, nil
+	local rayParams = RaycastParams.new()
+	rayParams.FilterType = Enum.RaycastFilterType.Exclude
+
+	local function aimPoint(cam)
+		if UIS.TouchEnabled and not UIS.MouseEnabled then return cam.ViewportSize / 2 end
+		return UIS:GetMouseLocation()
+	end
+
+	local function onShot()
+		if not ON("Visual/Combat") then return end
+		local now = os.clock()
+		if now - lastShotT < 0.04 then return end
+		lastShotT = now
+		local cam, char = workspace.CurrentCamera, lp.Character
+		if not (cam and char) then return end
+		rayParams.FilterDescendantsInstances = {char}
+		local m = aimPoint(cam)
+		local ray = cam:ViewportPointToRay(m.X, m.Y)
+		local res = workspace:Raycast(ray.Origin, ray.Direction * 1000, rayParams)
+		local hitPos = res and res.Position or (ray.Origin + ray.Direction * 300)
+
+		local tool = char:FindFirstChildOfClass("Tool")
+		local handle = tool and tool:FindFirstChild("Handle")
+		local src = handle or char:FindFirstChild("RightHand") or char:FindFirstChild("Right Arm") or char:FindFirstChild("HumanoidRootPart")
+		local from = src and src.Position or ray.Origin
+
+		lastTarget = nil
+		if res and res.Instance then
+			local model = res.Instance:FindFirstAncestorOfClass("Model")
+			local pl = model and Players:GetPlayerFromCharacter(model)
+			if pl then
+				lastTarget = {player = pl, t = now, pos = hitPos, head = res.Instance.Name == "Head"}
+			end
+		end
+
+		if V("Visual/Combat/Bullet tracer", true) then
+			tracers[#tracers + 1] = {
+				l = newDraw("Line", {Thickness = 1.5, Color = colorOf("Visual/Combat/Tracer color", 2), Transparency = 1, Visible = false, ZIndex = 5}),
+				a = from, b = hitPos, t0 = now, life = math.max(V("Visual/Combat/Tracer time", 800), 50) / 1000,
+			}
+		end
+	end
+
+	local function onHit(pos, dmg, head)
+		local now = os.clock()
+		if not ON("Visual/Combat") then return end
+		local hc = colorOf("Visual/Combat/Headshot color", 5)
+		if V("Visual/Combat/Hit marker", true) and #markers < 6 then
+			local mk = {t0 = now, life = 0.3, col = head and hc or Color3.new(1, 1, 1), lines = {}}
+			for i = 1, 4 do
+				mk.lines[i] = newDraw("Line", {Thickness = 2, Color = mk.col, Transparency = 1, Visible = false, ZIndex = 6})
+			end
+			markers[#markers + 1] = mk
+		end
+		if V("Visual/Combat/Hit effect", true) and #effects < 12 then
+			local col = head and hc or colorOf("Visual/Combat/Hit color", 1)
+			local ef = {pos = pos, t0 = now, life = 0.4, sparks = {}}
+			ef.ring = newDraw("Circle", {Filled = false, Thickness = 1.5, NumSides = 24, Color = col, Transparency = 1, Visible = false, ZIndex = 5})
+			for i = 1, 8 do
+				ef.sparks[i] = newDraw("Line", {Thickness = 1.5, Color = col, Transparency = 1, Visible = false, ZIndex = 5})
+			end
+			effects[#effects + 1] = ef
+		end
+		if V("Visual/Combat/Damage numbers", true) and #numbers < 16 then
+			numbers[#numbers + 1] = {
+				pos = pos, t0 = now, life = 0.9,
+				txt = newDraw("Text", {Text = tostring(math.floor(dmg + 0.5)), Size = head and 20 or 16, Center = true, Outline = true,
+					OutlineColor = Color3.new(0, 0, 0), Color = head and hc or Color3.new(1, 1, 1), Transparency = 1, Visible = false, ZIndex = 6}),
+			}
+		end
+	end
+
+	local lastHealth = setmetatable({}, {__mode = "k"})
+	local function watchHumanoid(pl, hum)
+		lastHealth[hum] = hum.Health
+		hum.HealthChanged:Connect(function(h)
+			local prev = lastHealth[hum] or h
+			lastHealth[hum] = h
+			local dmg = prev - h
+			if dmg > 0.5 and lastTarget and lastTarget.player == pl and os.clock() - lastTarget.t < 0.8 then
+				onHit(lastTarget.pos, dmg, lastTarget.head)
+			end
+		end)
+	end
+	local function watchPlayer(pl)
+		if pl == lp then return end
+		local function onChar(c)
+			local hum = c:WaitForChild("Humanoid", 10)
+			if hum then watchHumanoid(pl, hum) end
+		end
+		if pl.Character then task.spawn(onChar, pl.Character) end
+		pl.CharacterAdded:Connect(onChar)
+	end
+	for _, p in ipairs(Players:GetPlayers()) do watchPlayer(p) end
+	Players.PlayerAdded:Connect(watchPlayer)
+
+	local hooked = setmetatable({}, {__mode = "k"})
+	local function hookTool(t)
+		if hooked[t] then return end
+		hooked[t] = true
+		t.Activated:Connect(onShot)
+	end
+	local function hookChar(c)
+		for _, ch in ipairs(c:GetChildren()) do if ch:IsA("Tool") then hookTool(ch) end end
+		c.ChildAdded:Connect(function(ch) if ch:IsA("Tool") then hookTool(ch) end end)
+	end
+	if lp.Character then hookChar(lp.Character) end
+	lp.CharacterAdded:Connect(hookChar)
+
+	----------------------------------------------------------- camera zoom
+	local zoomHeld, zoomToggled, btnHeld = false, false, false
+	local function zoomActive()
+		if not (ON("Player/Camera") and V("Player/Camera/Zoom", true)) then return false end
+		if V("Player/Camera/Toggle mode", false) then return zoomToggled end
+		return zoomHeld or btnHeld
+	end
+
+	UIS.InputBegan:Connect(function(input, gp)
+		if gp then return end
+		if input.UserInputType == Enum.UserInputType.MouseButton1
+			and not (lp.Character and lp.Character:FindFirstChildOfClass("Tool")) then
+			onShot()
+		end
+		if hit(V("Player/Camera/Zoom key", "Z"), input) then
+			if V("Player/Camera/Toggle mode", false) then zoomToggled = not zoomToggled else zoomHeld = true end
+		end
+	end)
+	UIS.InputEnded:Connect(function(input)
+		if hit(V("Player/Camera/Zoom key", "Z"), input) then zoomHeld = false end
+	end)
+
+	local fovCur, fovOrig, fovWas
+	pcall(function() RunService:UnbindFromRenderStep("DramaCameraFOV") end)
+	RunService:BindToRenderStep("DramaCameraFOV", Enum.RenderPriority.Camera.Value + 1, function(dt)
+		local cam = workspace.CurrentCamera
+		if not cam then return end
+		if not ON("Player/Camera") then
+			if fovWas then
+				fovWas = false
+				if fovOrig then cam.FieldOfView = fovOrig end
+			end
+			return
+		end
+		if not fovWas then
+			fovWas = true
+			fovOrig = cam.FieldOfView
+			fovCur = cam.FieldOfView
+		end
+		local target = zoomActive() and V("Player/Camera/Zoom FOV", 25) or V("Player/Camera/Field of view", 90)
+		local sm = math.clamp(V("Player/Camera/Smoothing", 35), 0, 100) / 100
+		fovCur = fovCur + (target - fovCur) * math.clamp(dt * (4 + (1 - sm) * 26), 0, 1)
+		cam.FieldOfView = fovCur
+	end)
+
+	----------------------------------------------------------- touch zoom button
+	local zGui = Instance.new("ScreenGui")
+	zGui.Name = "DramaZoomButton"
+	zGui.ResetOnSpawn = false
+	zGui.IgnoreGuiInset = true
+	zGui.DisplayOrder = 900
+	zGui.Enabled = false
+	pcall(function() zGui.Parent = (gethui and gethui()) or game:GetService("CoreGui") end)
+	if not zGui.Parent then zGui.Parent = lp:WaitForChild("PlayerGui") end
+
+	local btn = Instance.new("TextButton")
+	btn.Text = "ZOOM"
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 11
+	btn.TextColor3 = Color3.new(1, 1, 1)
+	btn.AutoButtonColor = false
+	btn.AnchorPoint = Vector2.new(0.5, 0.5)
+	btn.Position = UDim2.fromScale(0.88, 0.45)
+	btn.Size = UDim2.fromOffset(58, 58)
+	btn.BackgroundColor3 = Color3.fromRGB(18, 18, 20)
+	btn.BackgroundTransparency = 0.35
+	btn.BorderSizePixel = 0
+	btn.Parent = zGui
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(1, 0)
+	local bst = Instance.new("UIStroke", btn)
+	bst.Thickness = 1.5
+	bst.Color = Color3.new(1, 1, 1)
+	bst.Transparency = 0.8
+
+	local tracked, startPos, startCenter, moved
+	btn.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+			tracked, moved = input, false
+			startPos = input.Position
+			startCenter = btn.AbsolutePosition + btn.AbsoluteSize / 2
+			if not V("Player/Camera/Toggle mode", false) then btnHeld = true end
+		end
+	end)
+	UIS.InputChanged:Connect(function(input)
+		if tracked and (input == tracked or input.UserInputType == Enum.UserInputType.MouseMovement) then
+			local d = input.Position - startPos
+			if moved or Vector2.new(d.X, d.Y).Magnitude > 10 then
+				moved, btnHeld = true, false
+				local vp = workspace.CurrentCamera.ViewportSize
+				btn.Position = UDim2.fromOffset(math.clamp(startCenter.X + d.X, 29, vp.X - 29), math.clamp(startCenter.Y + d.Y, 29, vp.Y - 29))
+			end
+		end
+	end)
+	UIS.InputEnded:Connect(function(input)
+		if tracked and (input == tracked or input.UserInputType == Enum.UserInputType.MouseButton1) then
+			if not moved and V("Player/Camera/Toggle mode", false) then zoomToggled = not zoomToggled end
+			tracked, btnHeld = nil, false
+		end
+	end)
+
+	RunService.Heartbeat:Connect(function()
+		zGui.Enabled = UIS.TouchEnabled and ON("Player/Camera") and V("Player/Camera/Zoom", true) and V("Player/Camera/Touch button", true)
+		local act = zoomActive()
+		btn.BackgroundColor3 = act and Color3.fromRGB(229, 49, 43) or Color3.fromRGB(18, 18, 20)
+		bst.Transparency = act and 0.3 or 0.8
+	end)
+
+	----------------------------------------------------------- render
+	RunService.RenderStepped:Connect(function()
+		local now = os.clock()
+		local cam = workspace.CurrentCamera
+		if not cam then return end
+
+		for i = #tracers, 1, -1 do
+			local t = tracers[i]
+			local p = (now - t.t0) / t.life
+			if p >= 1 then
+				pcall(function() t.l:Remove() end)
+				table.remove(tracers, i)
+			else
+				local a, b = cam:WorldToViewportPoint(t.a), cam:WorldToViewportPoint(t.b)
+				if a.Z > 0 and b.Z > 0 then
+					t.l.From, t.l.To = Vector2.new(a.X, a.Y), Vector2.new(b.X, b.Y)
+					t.l.Transparency = 1 - p
+					t.l.Visible = true
+				else
+					t.l.Visible = false
+				end
+			end
+		end
+
+		for i = #effects, 1, -1 do
+			local e = effects[i]
+			local p = (now - e.t0) / e.life
+			if p >= 1 then
+				pcall(function() e.ring:Remove() end)
+				for _, s in ipairs(e.sparks) do pcall(function() s:Remove() end) end
+				table.remove(effects, i)
+			else
+				local sp = cam:WorldToViewportPoint(e.pos)
+				local vis = sp.Z > 0
+				local c = Vector2.new(sp.X, sp.Y)
+				e.ring.Visible = vis
+				if vis then
+					e.ring.Position = c
+					e.ring.Radius = 4 + p * 18
+					e.ring.Transparency = 1 - p
+				end
+				for k, s in ipairs(e.sparks) do
+					s.Visible = vis
+					if vis then
+						local ang = k * math.pi / 4
+						local dir = Vector2.new(math.cos(ang), math.sin(ang))
+						local r1 = 3 + p * 14
+						s.From = c + dir * r1
+						s.To = c + dir * (r1 + 6 * (1 - p))
+						s.Transparency = 1 - p
+					end
+				end
+			end
+		end
+
+		for i = #numbers, 1, -1 do
+			local n = numbers[i]
+			local p = (now - n.t0) / n.life
+			if p >= 1 then
+				pcall(function() n.txt:Remove() end)
+				table.remove(numbers, i)
+			else
+				local sp = cam:WorldToViewportPoint(n.pos + Vector3.new(0, 2 + p * 2.5, 0))
+				n.txt.Visible = sp.Z > 0
+				if sp.Z > 0 then
+					n.txt.Position = Vector2.new(sp.X, sp.Y)
+					n.txt.Transparency = 1 - p * p
+				end
+			end
+		end
+
+		for i = #markers, 1, -1 do
+			local m = markers[i]
+			local p = (now - m.t0) / m.life
+			if p >= 1 then
+				for _, l in ipairs(m.lines) do pcall(function() l:Remove() end) end
+				table.remove(markers, i)
+			else
+				local c = cam.ViewportSize / 2
+				local gap = 4 + p * 4
+				local dirs = {Vector2.new(1, 1), Vector2.new(-1, 1), Vector2.new(1, -1), Vector2.new(-1, -1)}
+				for k, l in ipairs(m.lines) do
+					local d = dirs[k].Unit
+					l.From = c + d * gap
+					l.To = c + d * (gap + 7)
+					l.Transparency = 1 - p
+					l.Visible = true
+				end
+			end
+		end
+	end)
+end
+
 ----------------------------------------------------------------- HOOKS
 getgenv().DramaHooks = {
 	-- ESP
@@ -1689,6 +2314,13 @@ getgenv().DramaHooks = {
 	["Visual/ESP/Distance"] = function(v) setCfg("distance", v) end,
 	["Visual/ESP/Nickname"] = function(v) setCfg("nickname", v) end,
 	["Visual/ESP/Armor bar"] = function(v) setCfg("armorBar", v) end,
+	["Visual/ESP/Weapon"] = function(v) setCfg("weapon", v) end,
+	["Visual/ESP/Arrows"] = function(v) setCfg("arrows", v) end,
+	["Visual/ESP/Vis check"] = function(v) setCfg("visCheck", v) end,
+	["Visual/ESP/Corner color"] = function(v) setCfg("cornerColor", COLOR_OPTS[v] or COLOR_OPTS[2]) end,
+	["Visual/ESP/Visible color"] = function(v) cfg.visColor = COLOR_OPTS[v] or COLOR_OPTS[3] end,
+	["Visual/ESP/Hidden color"] = function(v) cfg.hidColor = COLOR_OPTS[v] or COLOR_OPTS[4] end,
+	["Visual/ESP/Arrow color"] = function(v) cfg.arrowColor = COLOR_OPTS[v] or COLOR_OPTS[4] end,
 	["Visual/ESP/Max distance"] = function(v) cfg.maxDist = v end,
 	["Visual/ESP/Skeleton"] = function(v) setCfg("skeleton", v) end,
 	["Visual/ESP/HP position"] = function(v) setCfg("hpPos", resolveHpPos(v)) end,

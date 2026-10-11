@@ -405,6 +405,9 @@ do
 						{t="s", l="Hit chance", min=1, max=100, v=100, u="%"},
 						{t="c", l="Auto prediction", v=false},
 						{t="s", l="Prediction", min=0, max=300, v=0, u=" ms"},
+						{t="c", l="Resolver", v=false},
+						{t="s", l="Jump offset", min=-10, max=10, v=0, u=" st"},
+						{t="s", l="Humanize", min=0, max=100, v=0, u="%"},
 						{t="c", l="Target snapline", v=true},
 						{
 							t="g",
@@ -442,6 +445,16 @@ do
 					},
 				},
 				{
+					col=0,
+					title="Hit log",
+					icon="crosshair",
+					on=false,
+					rows={
+						{t="d", l="Position", o={"Left", "Right", "Top"}, v=1},
+						{t="s", l="Duration", min=1, max=10, v=4, u=" s"},
+					},
+				},
+				{
 					col=1,
 					title="Aimbot",
 					icon="crosshair",
@@ -458,6 +471,9 @@ do
 						{t="s", l="Smoothing", min=0, max=95, v=25, u="%"},
 						{t="c", l="Auto prediction", v=false},
 						{t="s", l="Prediction", min=0, max=300, v=0, u=" ms"},
+						{t="c", l="Resolver", v=false},
+						{t="s", l="Jump offset", min=-10, max=10, v=0, u=" st"},
+						{t="s", l="Humanize", min=0, max=100, v=0, u="%"},
 						{
 							t="g",
 							l="FOV settings",
@@ -557,6 +573,7 @@ do
 						{t="c", l="Hold to crouch", v=false},
 						{t="s", l="Walk speed", min=50, max=150, v=100, u="%"},
 						{t="k", l="Sprint key", v="Shift"},
+						{t="c", l="No slowdown", v=false},
 					},
 				},
 				{
@@ -575,12 +592,27 @@ do
 					col=1,
 					title="Camera",
 					icon="eye",
-					on=true,
+					on=false,
 					rows={
 						{t="s", l="Field of view", min=60, max=120, v=90, u="°"},
 						{t="s", l="Smoothing", min=0, max=100, v=35, u="%"},
 						{t="c", l="Head bob", v=false},
 						{t="d", l="Perspective", o={"First person", "Third person"}, v=1},
+						{t="c", l="Zoom", v=true},
+						{t="s", l="Zoom FOV", min=5, max=60, v=25, u="°"},
+						{t="k", l="Zoom key", v="Z"},
+						{t="c", l="Toggle mode", v=false},
+						{t="c", l="Touch button", v=true},
+					},
+				},
+				{
+					col=1,
+					title="Fake macro",
+					icon="move",
+					on=false,
+					rows={
+						{t="k", l="Hotkey", v="X"},
+						{t="s", l="Speed", min=1, max=80, v=20, u=" st/s"},
 					},
 				},
 			},
@@ -605,6 +637,13 @@ do
 						{t="c", l="Skeleton", v=true},
 						{t="d", l="HP position", o={"Left", "Right", "Top", "Bottom"}, v=2},
 						{t="c", l="Preview", v=false},
+						{t="c", l="Weapon", v=true},
+						{t="c", l="Arrows", v=true},
+						{t="c", l="Vis check", v=true},
+						{t="d", l="Corner color", o={"White", "Mint", "Green", "Red", "Yellow", "Blue", "Pink", "Orange"}, v=2},
+						{t="d", l="Visible color", o={"White", "Mint", "Green", "Red", "Yellow", "Blue", "Pink", "Orange"}, v=3},
+						{t="d", l="Hidden color", o={"White", "Mint", "Green", "Red", "Yellow", "Blue", "Pink", "Orange"}, v=4},
+						{t="d", l="Arrow color", o={"White", "Mint", "Green", "Red", "Yellow", "Blue", "Pink", "Orange"}, v=4},
 						{t="s", l="Max distance", min=50, max=2000, v=500, u="m"},
 					},
 				},
@@ -618,6 +657,22 @@ do
 						{t="d", l="Style", o={"Default", "Custom 1", "Custom 2", "Custom 3"}, v=1},
 						{t="s", l="Size", min=2, max=40, v=14, u="px"},
 						{t="s", l="Opacity", min=0, max=100, v=100, u="%"},
+					},
+				},
+				{
+					col=1,
+					title="Combat",
+					icon="crosshair",
+					on=false,
+					rows={
+						{t="c", l="Bullet tracer", v=true},
+						{t="d", l="Tracer color", o={"White", "Mint", "Green", "Red", "Yellow", "Blue", "Pink", "Orange"}, v=2},
+						{t="s", l="Tracer time", min=100, max=3000, v=800, u=" ms"},
+						{t="c", l="Hit effect", v=true},
+						{t="d", l="Hit color", o={"White", "Mint", "Green", "Red", "Yellow", "Blue", "Pink", "Orange"}, v=1},
+						{t="c", l="Damage numbers", v=true},
+						{t="c", l="Hit marker", v=true},
+						{t="d", l="Headshot color", o={"White", "Mint", "Green", "Red", "Yellow", "Blue", "Pink", "Orange"}, v=5},
 					},
 				},
 			},
@@ -674,6 +729,47 @@ do
 						{t="s", l="Contrast", min=-100, max=100, v=0, u="%"},
 					},
 				},
+				{col=0, title="Weather", icon="globe", on=false, rows={
+					{t="d", l="Preset", o={"Clear","Rain","Storm","Snow"}, v=1},
+					{t="s", l="Rain density", min=0, max=100, v=50, u="%"},
+					{t="c", l="Thunder", v=false},
+					{t="c", l="Lightning", v=false},
+					{t="s", l="Wind angle", min=-60, max=60, v=0, u="°"},
+				}},
+				{col=1, title="Sky", icon="star", on=false, rows={
+					{t="d", l="Sky preset", o={"Default","Sunset","Midnight","Overcast","Desert"}, v=1},
+					{t="s", l="Star density", min=0, max=100, v=50, u="%"},
+					{t="c", l="Moon", v=true},
+					{t="c", l="Sun", v=true},
+					{t="s", l="Cloud density", min=0, max=100, v=50, u="%"},
+					{t="s", l="Cloud speed", min=0, max=100, v=30, u="%"},
+				}},
+				{col=0, title="Atmosphere", icon="eye", on=false, rows={
+					{t="s", l="Density", min=0, max=100, v=35, u="%"},
+					{t="s", l="Offset", min=0, max=100, v=25, u="%"},
+					{t="s", l="Haze", min=0, max=100, v=30, u="%"},
+					{t="s", l="Glare", min=0, max=100, v=0, u="%"},
+					{t="o", l="Color", v=4},
+					{t="o", l="Decay color", v=3},
+					{t="o", l="Haze color", v=5},
+				}},
+				{col=1, title="Wind", icon="move", on=false, rows={
+					{t="s", l="Speed", min=0, max=100, v=20, u="%"},
+					{t="s", l="Direction", min=0, max=360, v=0, u="°"},
+					{t="s", l="Turbulence", min=0, max=100, v=30, u="%"},
+					{t="c", l="Rustle sounds", v=false},
+				}},
+				{col=1, title="Sun Rays", icon="star", on=false, rows={
+					{t="s", l="Intensity", min=0, max=100, v=50, u="%"},
+					{t="s", l="Spread", min=0, max=100, v=50, u="%"},
+					{t="o", l="Color", v=1},
+				}},
+				{col=0, title="Night Vision", icon="eye", on=false, rows={
+					{t="s", l="Brightness", min=50, max=200, v=120, u="%"},
+					{t="s", l="Tint", min=0, max=100, v=70, u="%"},
+					{t="d", l="Mode", o={"Green","White","Red"}, v=1},
+					{t="s", l="Noise", min=0, max=100, v=20, u="%"},
+				}},
 			},
 		},
 		{
@@ -1685,6 +1781,341 @@ do
 		local key = V("Configs/Menu/Menu key")
 		if input.KeyCode.Name == key or input.UserInputType.Name == key then setOpen(not isOpen) end
 	end)
+
+
+	----------------------------------------------------------------- AMBIENT HOOKS
+	local Lighting = game:GetService("Lighting")
+
+	-- Time
+	local TIME_HOURS = {nil, 7, 12, 18, 23}
+	local function applyTime()
+		if not CARD["Ambient/Time"] or not CARD["Ambient/Time"].enabled then return end
+		local presetRow = ROW["Ambient/Time/Time of day"]
+		local hourRow   = ROW["Ambient/Time/Clock hour"]
+		local preset = presetRow and presetRow.val or 1
+		if preset == 1 then
+			Lighting.ClockTime = hourRow and hourRow.val or 12
+		else
+			Lighting.ClockTime = TIME_HOURS[preset] or 12
+			if hourRow then hourRow.val = Lighting.ClockTime end
+		end
+	end
+	HOOKS["Ambient/Time/Time of day"] = function() applyTime() end
+	HOOKS["Ambient/Time/Clock hour"]  = function(v) Lighting.ClockTime = v end
+
+	-- Fog
+	local function applyFog()
+		if not CARD["Ambient/Fog"] or not CARD["Ambient/Fog"].enabled then
+			Lighting.FogEnd = 100000; return
+		end
+		local en = ROW["Ambient/Fog/Enable fog"]
+		if not (en and en.val) then Lighting.FogEnd = 100000; return end
+		Lighting.FogStart = ROW["Ambient/Fog/Fog start"] and ROW["Ambient/Fog/Fog start"].val or 100
+		Lighting.FogEnd   = ROW["Ambient/Fog/Fog end"]   and ROW["Ambient/Fog/Fog end"].val   or 1000
+	end
+	HOOKS["Ambient/Fog"]            = function() applyFog() end
+	HOOKS["Ambient/Fog/Enable fog"] = function()   applyFog() end
+	HOOKS["Ambient/Fog/Fog start"]  = function(v)  Lighting.FogStart = v end
+	HOOKS["Ambient/Fog/Fog end"]    = function(v)  Lighting.FogEnd   = v end
+
+	-- Lighting
+	HOOKS["Ambient/Lighting/Brightness"] = function(v) Lighting.Brightness = v / 100 * 2 end
+	HOOKS["Ambient/Lighting/Ambient"]    = function(v)
+		local b = math.floor(v / 100 * 255)
+		Lighting.Ambient = Color3.fromRGB(b, b, b)
+	end
+	HOOKS["Ambient/Lighting/Shadows"]    = function(v) Lighting.GlobalShadows = v end
+
+	-- Effects
+	local function getOrCreate(parent, class, name)
+		local e = parent:FindFirstChild(name)
+		if not e then e = Instance.new(class); e.Name = name; e.Parent = parent end
+		return e
+	end
+	local function applyBloom()
+		local bloom = getOrCreate(Lighting, "BloomEffect", "DramaBloom")
+		local en = CARD["Ambient/Effects"] and CARD["Ambient/Effects"].enabled
+		bloom.Enabled   = en and (V("Ambient/Effects/Bloom") or false)
+		bloom.Intensity = (V("Ambient/Effects/Bloom intensity") or 40) / 100 * 2
+	end
+	local function applyBlur()
+		local blur = getOrCreate(Lighting, "BlurEffect", "DramaBlur")
+		local en = CARD["Ambient/Effects"] and CARD["Ambient/Effects"].enabled
+		blur.Enabled = en and (V("Ambient/Effects/Blur") or false)
+		blur.Size    = V("Ambient/Effects/Blur size") or 10
+	end
+	local function applyCC()
+		local cc = getOrCreate(Lighting, "ColorCorrectionEffect", "DramaCC")
+		local en = CARD["Ambient/Effects"] and CARD["Ambient/Effects"].enabled
+		cc.Enabled    = en and (V("Ambient/Effects/Color correction") or false)
+		cc.Saturation = (V("Ambient/Effects/Saturation") or 0) / 100
+		cc.Contrast   = (V("Ambient/Effects/Contrast") or 0) / 100
+	end
+	HOOKS["Ambient/Effects"]                  = function() applyBloom(); applyBlur(); applyCC() end
+	HOOKS["Ambient/Effects/Bloom"]            = function() applyBloom() end
+	HOOKS["Ambient/Effects/Bloom intensity"]  = function() applyBloom() end
+	HOOKS["Ambient/Effects/Blur"]             = function() applyBlur()  end
+	HOOKS["Ambient/Effects/Blur size"]        = function() applyBlur()  end
+	HOOKS["Ambient/Effects/Color correction"] = function() applyCC()    end
+	HOOKS["Ambient/Effects/Saturation"]       = function() applyCC()    end
+	HOOKS["Ambient/Effects/Contrast"]         = function() applyCC()    end
+
+	-- Weather
+	local _wParts, _thunderConn, _lightConn = {}, nil, nil
+	local function clearWeather()
+		for _, p in ipairs(_wParts) do pcall(function() p:Destroy() end) end
+		_wParts = {}
+		if _thunderConn then _thunderConn:Disconnect(); _thunderConn = nil end
+		if _lightConn   then _lightConn:Disconnect();   _lightConn   = nil end
+	end
+	local function applyWeather()
+		clearWeather()
+		if not CARD["Ambient/Weather"] or not CARD["Ambient/Weather"].enabled then return end
+		local presetRow = ROW["Ambient/Weather/Preset"]
+		local preset    = presetRow and presetRow.o[presetRow.val] or "Clear"
+		if preset == "Clear" then return end
+		local density   = (V("Ambient/Weather/Rain density") or 50) / 100
+		local thunder   = V("Ambient/Weather/Thunder")
+		local doLight   = V("Ambient/Weather/Lightning")
+		local windAng   = V("Ambient/Weather/Wind angle") or 0
+		local cam = workspace.CurrentCamera
+		local host = Instance.new("Part")
+		host.Anchored = true; host.CanCollide = false; host.CastShadow = false
+		host.Transparency = 1; host.Size = Vector3.new(300, 1, 300)
+		host.CFrame = CFrame.new(cam.CFrame.Position + Vector3.new(0, 60, 0))
+		host.Parent = workspace
+		table.insert(_wParts, host)
+		local emitter = Instance.new("ParticleEmitter")
+		local isSnow = preset == "Snow"
+		emitter.Rate        = math.floor(density * (preset == "Storm" and 800 or 400))
+		emitter.Lifetime    = NumberRange.new(1.5, 3)
+		emitter.Speed       = NumberRange.new(isSnow and 3 or 45, isSnow and 8 or 65)
+		local spreadX = isSnow and 25 or math.abs(windAng) * 0.3
+		emitter.SpreadAngle = isSnow and Vector2.new(25,25) or Vector2.new(spreadX, 3)
+		emitter.Color       = ColorSequence.new(isSnow and Color3.new(1,1,1) or Color3.fromRGB(160,200,255))
+		emitter.Transparency = NumberSequence.new(isSnow and 0.2 or 0.6)
+		emitter.RotSpeed    = isSnow and NumberRange.new(-45,45) or NumberRange.new(0,0)
+		emitter.Rotation    = isSnow and NumberRange.new(0,360) or NumberRange.new(90 + windAng, 90 + windAng)
+		pcall(function() emitter.Size = NumberSequence.new(isSnow and 0.06 or 0.025) end)
+		emitter.Parent = host
+		local followConn = RunService.RenderStepped:Connect(function()
+			if not host.Parent then return end
+			local p = cam.CFrame.Position
+			host.CFrame = CFrame.new(p.X, p.Y + 60, p.Z)
+		end)
+		table.insert(_wParts, {Destroy = function() followConn:Disconnect() end})
+		if thunder and not isSnow then
+			_thunderConn = RunService.Heartbeat:Connect(function()
+				if math.random(1, preset == "Storm" and 150 or 500) ~= 1 then return end
+				local s = Instance.new("Sound")
+				s.SoundId = "rbxassetid://9120545459"
+				s.Volume  = math.clamp(density * 1.5, 0.3, 1)
+				s.Parent  = SoundService; s:Play()
+				task.delay(6, function() s:Destroy() end)
+			end)
+		end
+		if doLight and not isSnow then
+			_lightConn = RunService.Heartbeat:Connect(function()
+				if math.random(1, preset == "Storm" and 250 or 800) ~= 1 then return end
+				local orig = Lighting.Brightness
+				Lighting.Brightness = 6
+				task.delay(0.07, function() Lighting.Brightness = orig end)
+			end)
+		end
+	end
+	HOOKS["Ambient/Weather"]              = function(en) if en then applyWeather() else clearWeather() end end
+	HOOKS["Ambient/Weather/Preset"]       = function() applyWeather() end
+	HOOKS["Ambient/Weather/Rain density"] = function() applyWeather() end
+	HOOKS["Ambient/Weather/Thunder"]      = function() applyWeather() end
+	HOOKS["Ambient/Weather/Lightning"]    = function() applyWeather() end
+	HOOKS["Ambient/Weather/Wind angle"]   = function() applyWeather() end
+
+	-- Sky
+	local SKY_PRESETS = {
+		Default  = {StarCount=3000, top="rbxasset://sky/sky_top.jpg",   bot="rbxasset://sky/sky_bottom.jpg", cloudDen=0.3},
+		Sunset   = {StarCount=800,  top="rbxassetid://", bot="rbxasset://sky/sky_bottom.jpg", cloudDen=0.5,
+			         colorTop=Color3.fromRGB(255,100,40), colorBot=Color3.fromRGB(255,160,80)},
+		Midnight = {StarCount=3000, top="rbxasset://sky/sky_top.jpg",   bot="rbxasset://sky/sky_bottom.jpg", cloudDen=0.1},
+		Overcast = {StarCount=0,    top="rbxasset://sky/sky_top.jpg",   bot="rbxasset://sky/sky_bottom.jpg", cloudDen=0.95},
+		Desert   = {StarCount=500,  top="rbxasset://sky/sky_top.jpg",   bot="rbxasset://sky/sky_bottom.jpg", cloudDen=0.05},
+	}
+	local _origSkyData = nil
+	local function applySky()
+		local sky = Lighting:FindFirstChildWhichIsA("Sky")
+		if not CARD["Ambient/Sky"] or not CARD["Ambient/Sky"].enabled then
+			if sky and _origSkyData then
+				sky.StarCount = _origSkyData.StarCount
+				sky.CelestialBodiesShown = true
+				pcall(function() sky.MoonTextureId = _origSkyData.MoonTextureId end)
+				pcall(function() sky.SunTextureId  = _origSkyData.SunTextureId  end)
+			end
+			local clouds = workspace.Terrain:FindFirstChildWhichIsA("Clouds")
+			if clouds then clouds:Destroy() end
+			return
+		end
+		if not sky then sky = Instance.new("Sky"); sky.Parent = Lighting end
+		if not _origSkyData then
+			_origSkyData = {
+				StarCount      = sky.StarCount,
+				MoonTextureId  = sky.MoonTextureId,
+				SunTextureId   = sky.SunTextureId,
+			}
+		end
+		local presetRow  = ROW["Ambient/Sky/Sky preset"]
+		local presetName = presetRow and presetRow.o[presetRow.val] or "Default"
+		local p          = SKY_PRESETS[presetName] or SKY_PRESETS.Default
+		local starDens   = (V("Ambient/Sky/Star density")  or 50) / 100
+		local showMoon   = V("Ambient/Sky/Moon") ~= false
+		local showSun    = V("Ambient/Sky/Sun")  ~= false
+		local cloudDens  = (V("Ambient/Sky/Cloud density") or 50) / 100
+		local cloudSpeed = (V("Ambient/Sky/Cloud speed")   or 30) / 100
+		local baseStars  = p.StarCount
+		sky.StarCount            = math.floor(baseStars * starDens * 2)
+		sky.CelestialBodiesShown = showMoon or showSun
+		sky.MoonTextureId        = showMoon and (_origSkyData.MoonTextureId or "") or ""
+		sky.SunTextureId         = showSun  and (_origSkyData.SunTextureId  or "") or ""
+		if presetName == "Midnight" then
+			Lighting.ClockTime = 0
+		elseif presetName == "Sunset" then
+			Lighting.ClockTime = 18
+		elseif presetName == "Overcast" then
+			Lighting.ClockTime = 12
+		elseif presetName == "Desert" then
+			Lighting.ClockTime = 14
+		end
+		local clouds = workspace.Terrain:FindFirstChildWhichIsA("Clouds")
+		if not clouds then clouds = Instance.new("Clouds"); clouds.Parent = workspace.Terrain end
+		clouds.Density = math.clamp(cloudDens * (p.cloudDen or 0.5) * 2, 0, 1)
+		clouds.Speed   = cloudSpeed * 50
+	end
+	HOOKS["Ambient/Sky"]               = function() applySky() end
+	HOOKS["Ambient/Sky/Sky preset"]    = function() applySky() end
+	HOOKS["Ambient/Sky/Star density"]  = function() applySky() end
+	HOOKS["Ambient/Sky/Moon"]          = function() applySky() end
+	HOOKS["Ambient/Sky/Sun"]           = function() applySky() end
+	HOOKS["Ambient/Sky/Cloud density"] = function() applySky() end
+	HOOKS["Ambient/Sky/Cloud speed"]   = function() applySky() end
+
+	-- Atmosphere
+	local function applyAtm()
+		local atm = Lighting:FindFirstChildWhichIsA("Atmosphere")
+		if not CARD["Ambient/Atmosphere"] or not CARD["Ambient/Atmosphere"].enabled then
+			if atm then atm:Destroy() end; return
+		end
+		if not atm then atm = Instance.new("Atmosphere"); atm.Parent = Lighting end
+		atm.Density = (V("Ambient/Atmosphere/Density") or 35) / 100 * 0.85
+		atm.Offset  = (V("Ambient/Atmosphere/Offset")  or 25) / 100 * 0.85
+		atm.Haze    = (V("Ambient/Atmosphere/Haze")    or 30) / 100 * 10
+		atm.Glare   = (V("Ambient/Atmosphere/Glare")   or 0)  / 100 * 1
+		local colRow   = ROW["Ambient/Atmosphere/Color"]
+		local decRow   = ROW["Ambient/Atmosphere/Decay color"]
+		local hazeRow  = ROW["Ambient/Atmosphere/Haze color"]
+		if colRow  then pcall(function() atm.Color     = Color3.fromHex(PAL[colRow.val])  end) end
+		if decRow  then pcall(function() atm.Decay     = Color3.fromHex(PAL[decRow.val])  end) end
+		if hazeRow then pcall(function() atm.HazeColor = Color3.fromHex(PAL[hazeRow.val]) end) end
+	end
+	HOOKS["Ambient/Atmosphere"]             = function() applyAtm() end
+	HOOKS["Ambient/Atmosphere/Density"]     = function() applyAtm() end
+	HOOKS["Ambient/Atmosphere/Offset"]      = function() applyAtm() end
+	HOOKS["Ambient/Atmosphere/Haze"]        = function() applyAtm() end
+	HOOKS["Ambient/Atmosphere/Glare"]       = function() applyAtm() end
+	HOOKS["Ambient/Atmosphere/Color"]       = function() applyAtm() end
+	HOOKS["Ambient/Atmosphere/Decay color"] = function() applyAtm() end
+	HOOKS["Ambient/Atmosphere/Haze color"]  = function() applyAtm() end
+
+	-- Wind
+	local _rustleConn
+	local function applyWind()
+		if _rustleConn then _rustleConn:Disconnect(); _rustleConn = nil end
+		if not CARD["Ambient/Wind"] or not CARD["Ambient/Wind"].enabled then
+			pcall(function() workspace.WindSpeed     = 0 end)
+			pcall(function() workspace.WindDirection = Vector3.new(1,0,0) end)
+			return
+		end
+		local speed  = (V("Ambient/Wind/Speed")       or 20)  / 100 * 100
+		local dir    = math.rad(V("Ambient/Wind/Direction") or 0)
+		local turb   = (V("Ambient/Wind/Turbulence")  or 30)  / 100
+		local rustle = V("Ambient/Wind/Rustle sounds")
+		pcall(function()
+			workspace.WindSpeed     = speed
+			workspace.WindDirection = Vector3.new(math.cos(dir), 0, math.sin(dir))
+		end)
+		if rustle then
+			local sounds = {"rbxassetid://9125402735","rbxassetid://9125402735"}
+			local t = 0
+			_rustleConn = RunService.Heartbeat:Connect(function(dt)
+				t += dt
+				if t < (2 + math.random() * 3) then return end
+				t = 0
+				local s = Instance.new("Sound")
+				s.SoundId = "rbxassetid://9125402735"
+				s.Volume  = 0.3 + turb * 0.5
+				s.Parent  = SoundService; s:Play()
+				task.delay(4, function() s:Destroy() end)
+			end)
+		end
+	end
+	HOOKS["Ambient/Wind"]                 = function(en) applyWind() end
+	HOOKS["Ambient/Wind/Speed"]           = function()   applyWind() end
+	HOOKS["Ambient/Wind/Direction"]       = function()   applyWind() end
+	HOOKS["Ambient/Wind/Turbulence"]      = function()   applyWind() end
+	HOOKS["Ambient/Wind/Rustle sounds"]   = function()   applyWind() end
+
+	-- Sun Rays
+	local function applySunRays()
+		local sr = getOrCreate(Lighting, "SunRaysEffect", "DramaSunRays")
+		if not CARD["Ambient/Sun Rays"] or not CARD["Ambient/Sun Rays"].enabled then
+			sr.Enabled = false; return
+		end
+		sr.Enabled    = true
+		sr.Intensity  = (V("Ambient/Sun Rays/Intensity") or 50) / 100 * 0.5
+		sr.Spread     = (V("Ambient/Sun Rays/Spread")    or 50) / 100 * 0.8
+		local colRow  = ROW["Ambient/Sun Rays/Color"]
+		if colRow then sr.Color = Color3.fromHex(PAL[colRow.val]) end
+	end
+	HOOKS["Ambient/Sun Rays"]           = function() applySunRays() end
+	HOOKS["Ambient/Sun Rays/Intensity"] = function() applySunRays() end
+	HOOKS["Ambient/Sun Rays/Spread"]    = function() applySunRays() end
+	HOOKS["Ambient/Sun Rays/Color"]     = function() applySunRays() end
+
+	-- Night Vision
+	local _nvActive = false
+	local function applyNV()
+		local cc     = getOrCreate(Lighting, "ColorCorrectionEffect", "DramaNV")
+		local bloom  = getOrCreate(Lighting, "BloomEffect",           "DramaNVBloom")
+		if not CARD["Ambient/Night Vision"] or not CARD["Ambient/Night Vision"].enabled then
+			cc.Enabled = false; bloom.Enabled = false; _nvActive = false; return
+		end
+		_nvActive = true
+		local brt    = (V("Ambient/Night Vision/Brightness") or 120) / 100
+		local tint   = (V("Ambient/Night Vision/Tint")       or 70)  / 100
+		local noise  = (V("Ambient/Night Vision/Noise")      or 20)  / 100
+		local modeRow = ROW["Ambient/Night Vision/Mode"]
+		local mode    = modeRow and modeRow.o[modeRow.val] or "Green"
+		local tintCol
+		if mode == "Green" then
+			tintCol = Color3.fromRGB(math.floor(20*tint), math.floor(255*tint), math.floor(20*tint))
+		elseif mode == "White" then
+			tintCol = Color3.fromRGB(200,220,255)
+		else -- Red
+			tintCol = Color3.fromRGB(math.floor(255*tint), math.floor(20*tint), math.floor(20*tint))
+		end
+		cc.Enabled    = true
+		cc.TintColor  = tintCol
+		cc.Brightness = brt - 1
+		cc.Contrast   = 0.2 + noise * 0.3
+		cc.Saturation = -0.7
+		bloom.Enabled   = true
+		bloom.Intensity = 0.4 + tint * 0.6
+		bloom.Size      = 20
+		bloom.Threshold = 0.8
+		Lighting.Brightness = math.max(Lighting.Brightness, brt * 1.5)
+	end
+	HOOKS["Ambient/Night Vision"]            = function() applyNV() end
+	HOOKS["Ambient/Night Vision/Brightness"] = function() applyNV() end
+	HOOKS["Ambient/Night Vision/Tint"]       = function() applyNV() end
+	HOOKS["Ambient/Night Vision/Mode"]       = function() applyNV() end
+	HOOKS["Ambient/Night Vision/Noise"]      = function() applyNV() end
 
 	----------------------------------------------------------------- start (after the loading screen)
 	for p, h in pairs(HOOKS) do if ROW[p] then task.spawn(h, ROW[p].val) end end
