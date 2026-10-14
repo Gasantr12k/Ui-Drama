@@ -407,7 +407,15 @@ do
 						{t="s", l="Prediction", min=0, max=300, v=0, u=" ms"},
 						{t="c", l="Resolver", v=false},
 						{t="s", l="Jump offset", min=-10, max=10, v=0, u=" st"},
-						{t="s", l="Humanize", min=0, max=100, v=0, u="%"},
+						{
+							t="g",
+							l="Humanize",
+							rows={
+								{t="s", l="Intensity", min=0, max=100, v=0, u="%"},
+								{t="s", l="Smoothness", min=0, max=100, v=60, u="%"},
+							},
+							open=false,
+						},
 						{t="c", l="Target snapline", v=true},
 						{
 							t="g",
@@ -473,7 +481,15 @@ do
 						{t="s", l="Prediction", min=0, max=300, v=0, u=" ms"},
 						{t="c", l="Resolver", v=false},
 						{t="s", l="Jump offset", min=-10, max=10, v=0, u=" st"},
-						{t="s", l="Humanize", min=0, max=100, v=0, u="%"},
+						{
+							t="g",
+							l="Humanize",
+							rows={
+								{t="s", l="Intensity", min=0, max=100, v=0, u="%"},
+								{t="s", l="Smoothness", min=0, max=100, v=60, u="%"},
+							},
+							open=false,
+						},
 						{
 							t="g",
 							l="FOV settings",
@@ -554,6 +570,17 @@ do
 					on=false,
 					rows={
 						{t="d", l="Player", o={"Off"}, v=1},
+					},
+				},
+				{
+					col=1,
+					title="Anti-lock",
+					icon="crosshair",
+					on=false,
+					rows={
+						{t="k", l="Hotkey", v="B"},
+						{t="d", l="Mode", o={"Velocity", "Offset", "Both"}, v=1},
+						{t="s", l="Intensity", min=1, max=100, v=50, u="%"},
 					},
 				},
 			},
@@ -657,6 +684,39 @@ do
 						{t="d", l="Style", o={"Default", "Custom 1", "Custom 2", "Custom 3"}, v=1},
 						{t="s", l="Size", min=2, max=40, v=14, u="px"},
 						{t="s", l="Opacity", min=0, max=100, v=100, u="%"},
+					},
+				},
+				{
+					col=0,
+					title="Chams",
+					icon="eye",
+					on=false,
+					rows={
+						{t="d", l="Material", o={"Highlight", "Neon", "ForceField", "Glass", "Metal"}, v=1},
+						{t="d", l="Fill color", o={"White", "Mint", "Green", "Red", "Yellow", "Blue", "Pink", "Orange"}, v=4},
+						{t="d", l="Outline color", o={"White", "Mint", "Green", "Red", "Yellow", "Blue", "Pink", "Orange"}, v=1},
+						{t="s", l="Fill transparency", min=0, max=100, v=50, u="%"},
+						{t="s", l="Outline transparency", min=0, max=100, v=0, u="%"},
+						{t="c", l="Through walls", v=true},
+						{t="c", l="Rainbow", v=false},
+						{t="c", l="Pulse", v=false},
+						{t="c", l="Color by visibility", v=false},
+						{t="c", l="Hit flash", v=true},
+						{t="d", l="Flash color", o={"White", "Mint", "Green", "Red", "Yellow", "Blue", "Pink", "Orange"}, v=5},
+						{t="s", l="Max distance", min=50, max=2000, v=500, u="m"},
+					},
+				},
+				{
+					col=0,
+					title="Look line",
+					icon="eye",
+					on=false,
+					rows={
+						{t="c", l="All players", v=false},
+						{t="s", l="Line length", min=5, max=60, v=25, u=" st"},
+						{t="d", l="Line color", o={"White", "Mint", "Green", "Red", "Yellow", "Blue", "Pink", "Orange"}, v=1},
+						{t="d", l="Alert color", o={"White", "Mint", "Green", "Red", "Yellow", "Blue", "Pink", "Orange"}, v=4},
+						{t="c", l="Stop at walls", v=true},
 					},
 				},
 				{
@@ -937,12 +997,34 @@ do
 	end
 
 	----------------------------------------------------------------- saving
-	local remote = ReplicatedStorage:WaitForChild("DramaSave", 8)
-	local function callServer(...)
-		if not remote then return nil end
-		local args = table.pack(...)
-		local ok, res = pcall(function() return remote:InvokeServer(table.unpack(args, 1, args.n)) end)
-		return ok and res or nil
+	local remote = ReplicatedStorage:FindFirstChild("DramaSave")
+	local HttpService = game:GetService("HttpService")
+	local CFG_DIR, CFG_FILE = "Drama", "Drama/config.json"
+	local hasFS = type(writefile) == "function" and type(readfile) == "function" and type(isfile) == "function"
+	local function fileLoad()
+		if not hasFS then return nil end
+		local ok, res = pcall(function()
+			if isfile(CFG_FILE) then return HttpService:JSONDecode(readfile(CFG_FILE)) end
+		end)
+		return ok and type(res) == "table" and res or nil
+	end
+	local function fileSave(data)
+		if not hasFS then return nil end
+		pcall(function()
+			if type(makefolder) == "function" and type(isfolder) == "function" and not isfolder(CFG_DIR) then makefolder(CFG_DIR) end
+		end)
+		local ok = pcall(function() writefile(CFG_FILE, HttpService:JSONEncode(data)) end)
+		return ok or nil
+	end
+	-- сервер (если есть RemoteFunction), иначе файл executor'а: Drama/config.json
+	local function callServer(action, payload)
+		if remote then
+			local ok, res = pcall(function() return remote:InvokeServer(action, payload) end)
+			return ok and res or nil
+		end
+		if action == "load" then return fileLoad() end
+		if action == "save" then return fileSave(payload) end
+		return nil
 	end
 	do
 		local data = callServer("load")

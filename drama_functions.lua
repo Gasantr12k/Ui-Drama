@@ -40,7 +40,8 @@ local function newDraw(class, props)
 end
 
 local function hpColor(p)
-	return Color3.fromRGB(math.floor(255 * (1 - p)), math.floor(215 * p + 40), 70)
+	-- HSV: H от 0° (красный) до 120° (зелёный), S=0.85, V=1
+	return Color3.fromHSV(p * (120 / 360), 0.85, 1)
 end
 
 local function makeObj(z)
@@ -76,8 +77,8 @@ end
 
 local function renderObj(o, d)
 	local top, bot, cx, hw = d.top, d.bot, d.cx, d.hw
-	local compact = false
 	local far = (bot - top) < 45
+	local compact = (bot - top) < 20
 	local cy = (top + bot) / 2
 	local l, r, h = cx - hw, cx + hw, bot - top
 	local col = hpColor(d.hp)
@@ -251,9 +252,11 @@ Players.PlayerRemoving:Connect(removeESP)
 
 local visParams = RaycastParams.new()
 visParams.FilterType = Enum.RaycastFilterType.Exclude
+visParams.RespectCanCollide = true
 
 local function isVisible(cam, char, head)
-	visParams.FilterDescendantsInstances = {lp.Character}
+	local myChar = lp.Character
+	visParams.FilterDescendantsInstances = myChar and {myChar} or {}
 	local origin = cam.CFrame.Position
 	local res = workspace:Raycast(origin, head.Position - origin, visParams)
 	return res == nil or res.Instance:IsDescendantOf(char)
@@ -293,7 +296,7 @@ RunService.RenderStepped:Connect(function()
 		local root = char and char:FindFirstChild("HumanoidRootPart")
 		local head = char and char:FindFirstChild("Head")
 
-		if not (hum and root and head) then
+		if not (hum and root and head) or hum.Health <= 0 then
 			hideObj(o)
 			continue
 		end
@@ -502,8 +505,8 @@ local LANG_ALIAS = {
 }
 
 local EXTRA = {
-	ru = {["Skeleton"]="Скелет",["HP position"]="Позиция HP",["Left"]="Слева",["Right"]="Справа",["Top"]="Сверху",["Bottom"]="Снизу",["Corners"]="Углы",["Corners + skeleton"]="Углы + скелет",["ESP preview"]="Предпросмотр ESP",["Armor bar"]="Броня",["Weapon"]="Оружие",["Arrows"]="Стрелки",["Vis check"]="Видимость",["Corner color"]="Цвет углов",["Visible color"]="Цвет видимого",["Hidden color"]="Цвет за стеной",["Arrow color"]="Цвет стрелок",["White"]="Белый",["Mint"]="Мятный",["Green"]="Зелёный",["Red"]="Красный",["Yellow"]="Жёлтый",["Blue"]="Синий",["Pink"]="Розовый",["Orange"]="Оранжевый",["Combat"]="Бой",["Bullet tracer"]="Трассер пуль",["Tracer color"]="Цвет трассера",["Tracer time"]="Время трассера",["Hit effect"]="Эффект попадания",["Hit color"]="Цвет эффекта",["Damage numbers"]="Числа урона",["Hit marker"]="Хит-маркер",["Headshot color"]="Цвет хедшота",["Zoom FOV"]="FOV зума"},
-	uk = {["Skeleton"]="Скелет",["HP position"]="Позиція HP",["Left"]="Ліворуч",["Right"]="Праворуч",["Top"]="Зверху",["Bottom"]="Знизу",["Corners"]="Кути",["Corners + skeleton"]="Кути + скелет",["ESP preview"]="Попередній перегляд ESP",["Armor bar"]="Броня",["Weapon"]="Зброя",["Arrows"]="Стрілки",["Vis check"]="Видимість",["Corner color"]="Колір кутів",["Visible color"]="Колір видимого",["Hidden color"]="Колір за стіною",["Arrow color"]="Колір стрілок",["White"]="Білий",["Mint"]="М'ятний",["Green"]="Зелений",["Red"]="Червоний",["Yellow"]="Жовтий",["Blue"]="Синій",["Pink"]="Рожевий",["Orange"]="Помаранчевий",["Combat"]="Бій",["Bullet tracer"]="Трасер куль",["Tracer color"]="Колір трасера",["Tracer time"]="Час трасера",["Hit effect"]="Ефект влучання",["Hit color"]="Колір ефекту",["Damage numbers"]="Числа шкоди",["Hit marker"]="Хіт-маркер",["Headshot color"]="Колір хедшота",["Zoom FOV"]="FOV зуму"},
+	ru = {["Skeleton"]="Скелет",["HP position"]="Позиция HP",["Left"]="Слева",["Right"]="Справа",["Top"]="Сверху",["Bottom"]="Снизу",["Corners"]="Углы",["Corners + skeleton"]="Углы + скелет",["ESP preview"]="Предпросмотр ESP",["Armor bar"]="Броня",["Weapon"]="Оружие",["Arrows"]="Стрелки",["Vis check"]="Видимость",["Corner color"]="Цвет углов",["Visible color"]="Цвет видимого",["Hidden color"]="Цвет за стеной",["Arrow color"]="Цвет стрелок",["White"]="Белый",["Mint"]="Мятный",["Green"]="Зелёный",["Red"]="Красный",["Yellow"]="Жёлтый",["Blue"]="Синий",["Pink"]="Розовый",["Orange"]="Оранжевый",["Combat"]="Бой",["Bullet tracer"]="Трассер пуль",["Tracer color"]="Цвет трассера",["Tracer time"]="Время трассера",["Hit effect"]="Эффект попадания",["Hit color"]="Цвет эффекта",["Damage numbers"]="Числа урона",["Hit marker"]="Хит-маркер",["Headshot color"]="Цвет хедшота",["Zoom FOV"]="FOV зума",["Chams"]="Чамсы",["Material"]="Материал",["Fill color"]="Цвет заливки",["Outline color"]="Цвет контура",["Fill transparency"]="Прозрачность заливки",["Outline transparency"]="Прозрачность контура",["Through walls"]="Сквозь стены",["Rainbow"]="Радуга",["Pulse"]="Пульс",["Color by visibility"]="Цвет по видимости",["Highlight"]="Подсветка",["Neon"]="Неон",["ForceField"]="Силовое поле",["Glass"]="Стекло",["Metal"]="Металл",["Look line"]="Линия взгляда",["All players"]="Все игроки",["Line length"]="Длина линии",["Line color"]="Цвет линии",["Alert color"]="Цвет тревоги",["Stop at walls"]="Обрыв на стенах",["Hit flash"]="Вспышка при попадании",["Flash color"]="Цвет вспышки"},
+	uk = {["Skeleton"]="Скелет",["HP position"]="Позиція HP",["Left"]="Ліворуч",["Right"]="Праворуч",["Top"]="Зверху",["Bottom"]="Знизу",["Corners"]="Кути",["Corners + skeleton"]="Кути + скелет",["ESP preview"]="Попередній перегляд ESP",["Armor bar"]="Броня",["Weapon"]="Зброя",["Arrows"]="Стрілки",["Vis check"]="Видимість",["Corner color"]="Колір кутів",["Visible color"]="Колір видимого",["Hidden color"]="Колір за стіною",["Arrow color"]="Колір стрілок",["White"]="Білий",["Mint"]="М'ятний",["Green"]="Зелений",["Red"]="Червоний",["Yellow"]="Жовтий",["Blue"]="Синій",["Pink"]="Рожевий",["Orange"]="Помаранчевий",["Combat"]="Бій",["Bullet tracer"]="Трасер куль",["Tracer color"]="Колір трасера",["Tracer time"]="Час трасера",["Hit effect"]="Ефект влучання",["Hit color"]="Колір ефекту",["Damage numbers"]="Числа шкоди",["Hit marker"]="Хіт-маркер",["Headshot color"]="Колір хедшота",["Zoom FOV"]="FOV зуму",["Chams"]="Чамси",["Material"]="Матеріал",["Fill color"]="Колір заливки",["Outline color"]="Колір контуру",["Fill transparency"]="Прозорість заливки",["Outline transparency"]="Прозорість контуру",["Through walls"]="Крізь стіни",["Rainbow"]="Веселка",["Pulse"]="Пульс",["Color by visibility"]="Колір за видимістю",["Highlight"]="Підсвічування",["Neon"]="Неон",["ForceField"]="Силове поле",["Glass"]="Скло",["Metal"]="Метал",["Look line"]="Лінія погляду",["All players"]="Усі гравці",["Line length"]="Довжина лінії",["Line color"]="Колір лінії",["Alert color"]="Колір тривоги",["Stop at walls"]="Обрив на стінах",["Hit flash"]="Спалах при влучанні",["Flash color"]="Колір спалаху"},
 }
 for code, tbl in pairs(EXTRA) do
 	for k, v in pairs(tbl) do LANG[code][k] = v end
@@ -527,23 +530,27 @@ end
 
 local function translateGui(dict)
 	for _, root in ipairs(uiRoots()) do
-		local ok, list = pcall(function() return root:GetDescendants() end)
-		if ok then
-			for _, d in ipairs(list) do
-				if d:IsA("TextLabel") or d:IsA("TextButton") then
-					local o = origText[d]
-					if o and d.Text ~= lastText[d] and not KEYS[d.Text] then
-						origText[d] = nil
-						o = nil
-					end
-					if not o and KEYS[d.Text] then
-						o = d.Text
-						origText[d] = o
-					end
-					if o then
-						local new = dict[o] or o
-						if d.Text ~= new then d.Text = new end
-						lastText[d] = new
+		for _, g in ipairs(root:GetChildren()) do
+			if g:IsA("ScreenGui") and g.Name:sub(1, 5) == "Drama" then
+				local ok, list = pcall(function() return g:GetDescendants() end)
+				if ok then
+					for _, d in ipairs(list) do
+						if d:IsA("TextLabel") or d:IsA("TextButton") then
+							local o = origText[d]
+							if o and d.Text ~= lastText[d] and not KEYS[d.Text] then
+								origText[d] = nil
+								o = nil
+							end
+							if not o and KEYS[d.Text] then
+								o = d.Text
+								origText[d] = o
+							end
+							if o then
+								local new = dict[o] or o
+								if d.Text ~= new then d.Text = new end
+								lastText[d] = new
+							end
+						end
 					end
 				end
 			end
@@ -575,13 +582,13 @@ do
 			["Radius"]="Радиус",["Closest"]="Ближайшая",["Head"]="Голова",["Torso"]="Торс",
 			["Bullet mods"]="Модификации пуль",["Wallbang"]="Wallbang",["Instant hit"]="Мгновенный хит",["Touch button"]="Кнопка для телефона",["Auto"]="Авто",
 			["Dead check"]="Проверка смерти",["Team check"]="Проверка команды",["Target priority"]="Приоритет цели",["Health"]="Здоровье",["Hit chance"]="Шанс попадания",["Prediction"]="Упреждение",["Sticky target"]="Липкая цель",["Triggerbot"]="Триггербот",["Delay"]="Задержка",["Target info"]="Инфо о цели",["Position"]="Позиция",["Top"]="Сверху",["Right"]="Справа",["Bottom"]="Снизу",
-			["Auto prediction"]="Авто-упреждение",["Weapon profiles"]="Профили оружия",["Override"]="Переопределить",["Revolver"]="Револьвер",["Shotgun"]="Дробовик",["Rifle"]="Винтовка",["Hit sound"]="Звук попадания",["Hit"]="Попадание",["Knock"]="Нокаут",["Spectate"]="Наблюдение",["Off"]="Выкл",["Fake macro"]="Фейк макро",["Speed"]="Скорость",["No slowdown"]="Без замедления",["Hit log"]="Лог попаданий",["Resolver"]="Резолвер",["Jump offset"]="Смещение в прыжке",["Humanize"]="Хуманизация"},
+			["Auto prediction"]="Авто-упреждение",["Weapon profiles"]="Профили оружия",["Override"]="Переопределить",["Revolver"]="Револьвер",["Shotgun"]="Дробовик",["Rifle"]="Винтовка",["Hit sound"]="Звук попадания",["Hit"]="Попадание",["Knock"]="Нокаут",["Spectate"]="Наблюдение",["Off"]="Выкл",["Fake macro"]="Фейк макро",["Speed"]="Скорость",["No slowdown"]="Без замедления",["Hit log"]="Лог попаданий",["Resolver"]="Резолвер",["Jump offset"]="Смещение в прыжке",["Humanize"]="Хуманизация",["Intensity"]="Интенсивность",["Smoothness"]="Плавность",["Anti-lock"]="Анти-лок",["Velocity"]="Скорость",["Offset"]="Смещение",["Both"]="Оба"},
 		uk = {["Silent aim"]="Silent aim",["Aimbot"]="Аімбот",["Wall check"]="Перевірка стін",["Target part"]="Частина тіла",
 			["Target snapline"]="Лінія до цілі",["Whitelist"]="Білий список",["FOV settings"]="Налаштування FOV",["Show circle"]="Показати коло",
 			["Radius"]="Радіус",["Closest"]="Найближча",["Head"]="Голова",["Torso"]="Торс",
 			["Bullet mods"]="Модифікації куль",["Wallbang"]="Wallbang",["Instant hit"]="Миттєвий хіт",["Touch button"]="Кнопка для телефона",["Auto"]="Авто",
 			["Dead check"]="Перевірка смерті",["Team check"]="Перевірка команди",["Target priority"]="Пріоритет цілі",["Health"]="Здоров'я",["Hit chance"]="Шанс влучання",["Prediction"]="Упередження",["Sticky target"]="Липка ціль",["Triggerbot"]="Тригербот",["Delay"]="Затримка",["Target info"]="Інфо про ціль",["Position"]="Позиція",["Top"]="Зверху",["Right"]="Справа",["Bottom"]="Знизу",
-			["Auto prediction"]="Авто-упередження",["Weapon profiles"]="Профілі зброї",["Override"]="Перевизначити",["Revolver"]="Револьвер",["Shotgun"]="Дробовик",["Rifle"]="Гвинтівка",["Hit sound"]="Звук влучання",["Hit"]="Влучання",["Knock"]="Нокаут",["Spectate"]="Спостереження",["Off"]="Вимк",["Fake macro"]="Фейк макро",["Speed"]="Швидкість",["No slowdown"]="Без уповільнення",["Hit log"]="Лог влучань",["Resolver"]="Резолвер",["Jump offset"]="Зміщення у стрибку",["Humanize"]="Хуманізація"},
+			["Auto prediction"]="Авто-упередження",["Weapon profiles"]="Профілі зброї",["Override"]="Перевизначити",["Revolver"]="Револьвер",["Shotgun"]="Дробовик",["Rifle"]="Гвинтівка",["Hit sound"]="Звук влучання",["Hit"]="Влучання",["Knock"]="Нокаут",["Spectate"]="Спостереження",["Off"]="Вимк",["Fake macro"]="Фейк макро",["Speed"]="Швидкість",["No slowdown"]="Без уповільнення",["Hit log"]="Лог влучань",["Resolver"]="Резолвер",["Jump offset"]="Зміщення у стрибку",["Humanize"]="Хуманізація",["Intensity"]="Інтенсивність",["Smoothness"]="Плавність",["Anti-lock"]="Анти-лок",["Velocity"]="Швидкість",["Offset"]="Зміщення",["Both"]="Обидва"},
 	}
 	for code, add in pairs(ADD) do
 		LANG[code] = LANG[code] or {}
@@ -594,18 +601,20 @@ end
 local function applyLang(idx, TABS)
 	local dict = LANG[langMap[idx] or "en"] or {}
 	for _, tab in ipairs(TABS) do
-		tab._origName = tab._origName or tab.name
-		tab._origGroup = tab._origGroup or tab.group
-		tab.name = dict[tab._origName] or tab._origName
+		-- Сохраняем оригинал один раз и больше не обновляем,
+		-- чтобы повторные вызовы не перезаписывали его переведённым значением
+		if tab._origName == nil then tab._origName = tab.name end
+		if tab._origGroup == nil then tab._origGroup = tab.group end
+		tab.name  = dict[tab._origName]  or tab._origName
 		tab.group = dict[tab._origGroup] or tab._origGroup
 		if tab.cards then
 			for _, card in ipairs(tab.cards) do
-				card._origTitle = card._origTitle or card.title
+				if card._origTitle == nil then card._origTitle = card.title end
 				card.title = dict[card._origTitle] or card._origTitle
 				if card.rows then
 					local function patchRows(rows)
 						for _, r in ipairs(rows) do
-							r._origL = r._origL or r.l
+							if r._origL == nil then r._origL = r.l end
 							r.l = dict[r._origL] or r._origL
 							if r.t == "g" and r.rows then patchRows(r.rows) end
 						end
@@ -1044,6 +1053,34 @@ do
 		return root.AssemblyLinearVelocity
 	end
 
+	-- в воздухе ли цель: под ногами нет земли ближе ~4.6 studs
+	local jrp = RaycastParams.new()
+	jrp.FilterType = Enum.RaycastFilterType.Exclude
+	jrp.IgnoreWater = true
+	local function airborne(ch, root)
+		local f = {ch}
+		if lp.Character then f[2] = lp.Character end
+		jrp.FilterDescendantsInstances = f
+		local res = workspace:Raycast(root.Position, Vector3.new(0, -6, 0), jrp)
+		return res == nil or (root.Position.Y - res.Position.Y) > 4.6
+	end
+
+	-- Humanize (Shake): шум [-1..1], сглаженный фильтром. smooth 0..100: больше значит плавнее
+	local shAim = {x = 0, y = 0, z = 0, sx = 0.3, sy = 4.1, sz = 9.7}
+	local shSil = {x = 0, y = 0, z = 0, sx = 1.3, sy = 2.9, sz = 5.1}
+	local function shakeStep(st, dt, smooth)
+		local tn = os.clock()
+		local tx = math.noise(tn * 8, st.sx) * 2
+		local ty = math.noise(tn * 6.6, st.sy) * 2
+		local tz = math.noise(tn * 9.4, st.sz) * 2
+		local s = 0.15 + 0.8 * math.clamp(smooth / 100, 0, 1)
+		local a = 1 - s ^ (math.min(dt, 0.1) * 60)
+		st.x += (tx - st.x) * a
+		st.y += (ty - st.y) * a
+		st.z += (tz - st.z) * a
+		return st.x, st.y, st.z
+	end
+
 	-- o: {dist, mode (1 Head/2 Torso/3 Closest), prio (1 Crosshair/2 Distance/3 Health), wall, fov, dead, team, pred (ms), only}
 	local function pick(cam, center, o)
 		local origin = cam.CFrame.Position
@@ -1070,7 +1107,10 @@ do
 											local root = ch:FindFirstChild("HumanoidRootPart")
 											if root then pos = pos + velOf(ch, root, o.res) * (o.pred / 1000) end
 										end
-										if o.jump and o.jump ~= 0 and hum.FloorMaterial == Enum.Material.Air then pos = pos + Vector3.new(0, o.jump, 0) end
+										if o.jump and o.jump ~= 0 then
+											local jr = ch:FindFirstChild("HumanoidRootPart")
+											if jr and airborne(ch, jr) then pos = pos + Vector3.new(0, o.jump, 0) end
+										end
 										best = {part = part, pos = pos, screen = scr, char = ch}
 										bestScore = score
 									end
@@ -1107,7 +1147,10 @@ do
 						local root = ch:FindFirstChild("HumanoidRootPart")
 						if root then pos = pos + velOf(ch, root, o.res) * (o.pred / 1000) end
 					end
-					if o.jump and o.jump ~= 0 and hum.FloorMaterial == Enum.Material.Air then pos = pos + Vector3.new(0, o.jump, 0) end
+					if o.jump and o.jump ~= 0 then
+						local jr = ch:FindFirstChild("HumanoidRootPart")
+						if jr and airborne(ch, jr) then pos = pos + Vector3.new(0, o.jump, 0) end
+					end
 					best = {part = part, pos = pos, screen = scr, char = ch}
 					bestD = d
 				end
@@ -1253,7 +1296,7 @@ do
 	end
 
 	----------------------------------------------------------- touch-кнопки (телефон): Pill, перетаскиваются
-	local touchOn, macroOn = false, false
+	local touchOn, macroOn, antiOn = false, false, false
 	local ICON_IDLE = Color3.fromHex("C4C4C9")
 	local KNOB_IDLE = Color3.fromHex("D0D0D4")
 	local WHITE = Color3.new(1, 1, 1)
@@ -1307,6 +1350,18 @@ do
 			lbl.TextSize = 26
 			lbl.TextColor3 = ICON_IDLE
 			lbl.Parent = icon
+		elseif kind == "anti" then
+			local dia = frame(icon, {AnchorPoint = Vector2.new(.5, .5), Position = UDim2.fromScale(.5, .5),
+				Size = UDim2.fromOffset(14, 14), Rotation = 45, BackgroundTransparency = 1})
+			local dc = Instance.new("UICorner")
+			dc.CornerRadius = UDim.new(0, 3)
+			dc.Parent = dia
+			rs = Instance.new("UIStroke")
+			rs.Thickness = 1.5
+			rs.Color = ICON_IDLE
+			rs.Parent = dia
+			parts[#parts + 1] = frame(icon, {AnchorPoint = Vector2.new(.5, .5), Position = UDim2.fromScale(.5, .5),
+				Size = UDim2.fromOffset(3, 3), BackgroundColor3 = ICON_IDLE}, true)
 		else
 			local ring = frame(icon, {AnchorPoint = Vector2.new(.5, .5), Position = UDim2.fromScale(.5, .5),
 				Size = UDim2.fromOffset(13, 13), BackgroundTransparency = 1}, true)
@@ -1384,7 +1439,7 @@ do
 			slot.gui.Enabled = false
 		end
 	end
-	local pAim, pMac = {}, {}
+	local pAim, pMac, pAnti = {}, {}, {}
 
 	-- авто-детект: кнопки только на телефоне/планшете без клавиатуры
 	local function touchWanted()
@@ -1395,7 +1450,7 @@ do
 	local aimHeld = false
 	UIS.InputBegan:Connect(function(input, gp)
 		local ut = input.UserInputType
-		if ut == Enum.UserInputType.Touch or (ut == Enum.UserInputType.MouseButton1 and not gp) then
+		if ut == Enum.UserInputType.Touch or ut == Enum.UserInputType.MouseButton1 then
 			S.firing = true
 			S.lastFire = os.clock()
 			rollHit()
@@ -1403,6 +1458,7 @@ do
 		if gp then return end
 		if ON("Aim/Aimbot") and hit(V("Aim/Aimbot/Hotkey", "Mouse 2"), input) then aimHeld = true end
 		if ON("Player/Fake macro") and hit(V("Player/Fake macro/Hotkey", "X"), input) then macroOn = not macroOn end
+		if ON("Aim/Anti-lock") and hit(V("Aim/Anti-lock/Hotkey", "B"), input) then antiOn = not antiOn end
 	end)
 	UIS.InputEnded:Connect(function(input)
 		local ut = input.UserInputType
@@ -1601,6 +1657,80 @@ do
 		logAdd('<font color="#E5312B">KNOCK</font>  ' .. nameOf(ch))
 	end
 
+	----------------------------------------------------------- детект выстрелов по оружию (Tool.Activated / Ammo)
+	do
+		local hookedTools = setmetatable({}, {__mode = "k"})
+		local hookedBp = setmetatable({}, {__mode = "k"})
+		local function shot()
+			S.lastFire = os.clock()
+			rollHit()
+		end
+		local function hookTool(tool)
+			if hookedTools[tool] or not tool:IsA("Tool") then return end
+			hookedTools[tool] = true
+			tool.Activated:Connect(shot)
+			local ammo = tool:FindFirstChild("Ammo")
+			if ammo and ammo:IsA("ValueBase") then
+				local la = ammo.Value
+				ammo:GetPropertyChangedSignal("Value"):Connect(function()
+					local v = ammo.Value
+					if type(v) == "number" and type(la) == "number" and v < la then shot() end
+					la = v
+				end)
+			end
+		end
+		local function hookBackpack()
+			local bp = lp:FindFirstChildOfClass("Backpack")
+			if bp and not hookedBp[bp] then
+				hookedBp[bp] = true
+				for _, o in ipairs(bp:GetChildren()) do hookTool(o) end
+				bp.ChildAdded:Connect(hookTool)
+			end
+		end
+		local function hookCharTools(ch)
+			for _, o in ipairs(ch:GetChildren()) do hookTool(o) end
+			ch.ChildAdded:Connect(hookTool)
+			hookBackpack()
+			task.delay(1, hookBackpack)
+		end
+		if lp.Character then hookCharTools(lp.Character) end
+		lp.CharacterAdded:Connect(hookCharTools)
+		hookBackpack()
+	end
+
+	----------------------------------------------------------- Anti-lock (desync: сложнее поймать аимом)
+	do
+		local saved
+		local old = getgenv().DramaAntiConn
+		if old then pcall(function() old:Disconnect() end) end
+		getgenv().DramaAntiConn = RunService.Heartbeat:Connect(function()
+			if not (antiOn and ON("Aim/Anti-lock")) then return end
+			local ch = lp.Character
+			local root = ch and ch:FindFirstChild("HumanoidRootPart")
+			local hum = ch and ch:FindFirstChildOfClass("Humanoid")
+			if not root or not hum or hum.Health <= 0 or hum.Sit then return end
+			local mode = V("Aim/Anti-lock/Mode", 1)
+			local k = math.clamp(V("Aim/Anti-lock/Intensity", 50), 1, 100) / 100
+			saved = {root = root, vel = root.AssemblyLinearVelocity, cf = root.CFrame, mode = mode}
+			local rx, ry, rz = math.random() * 2 - 1, math.random() * 2 - 1, math.random() * 2 - 1
+			if mode == 1 or mode == 3 then
+				root.AssemblyLinearVelocity = Vector3.new(rx, ry * 0.5, rz) * (k * 150)
+			end
+			if mode == 2 or mode == 3 then
+				root.CFrame = root.CFrame + Vector3.new(rx, 0, rz) * (k * 6)
+			end
+		end)
+		pcall(function() RunService:UnbindFromRenderStep("DramaAntiLock") end)
+		RunService:BindToRenderStep("DramaAntiLock", Enum.RenderPriority.First.Value, function()
+			local s = saved
+			saved = nil
+			if s and s.root.Parent then
+				if s.mode == 1 or s.mode == 3 then s.root.AssemblyLinearVelocity = s.vel end
+				if s.mode == 2 or s.mode == 3 then s.root.CFrame = s.cf end
+			end
+		end)
+	end
+
 	----------------------------------------------------------- hit sound
 	local SoundService = game:GetService("SoundService")
 	local Debris = game:GetService("Debris")
@@ -1665,6 +1795,8 @@ do
 		local function damaged(amount, kind)
 			if (S.firing or os.clock() - S.lastFire < 0.6) and (S.tchar == ch or nearCenter(ch)) then
 				lastHit[ch] = os.clock()
+				S.hitAt = S.hitAt or setmetatable({}, {__mode = "k"})
+				S.hitAt[ch] = lastHit[ch]
 				logHit(ch, amount, kind)
 				playHit(false)
 				return true
@@ -1822,6 +1954,11 @@ do
 		pillStep(pAim, abOn and tw, touchOn, "DramaAimTouch", UDim2.fromScale(.84, .6), "aim", function() touchOn = not touchOn end)
 		if not (abOn and tw) then touchOn = false end
 
+		-- Anti-lock: кнопка на телефоне
+		local alOn = ON("Aim/Anti-lock")
+		if not alOn then antiOn = false end
+		pillStep(pAnti, alOn and tw, antiOn, "DramaAntiTouch", UDim2.fromScale(.16, .5), "anti", function() antiOn = not antiOn end)
+
 		-- Fake macro (speed): включается кнопкой, ускорение через CFrame
 		local mOn = ON("Player/Fake macro")
 		if not mOn then macroOn = false end
@@ -1863,12 +2000,11 @@ do
 				local cf = cam.CFrame
 				local s = math.clamp(prof and prof.smooth or V("Aim/Aimbot/Smoothing", 25), 0, 95) / 100
 				local alpha = math.clamp(1 - s ^ (dt * 60), 0, 1)
-				local hz = V("Aim/Aimbot/Humanize", 0) / 100
 				local goal = CFrame.lookAt(cf.Position, t.pos)
-				if hz > 0 then
-					local tn = os.clock()
-					goal = goal * CFrame.Angles(math.noise(tn * 1.7, 0.3) * hz * 0.012, math.noise(tn * 1.3, 4.1) * hz * 0.012, 0)
-					alpha = math.clamp(alpha * (1 + math.noise(tn * 0.9, 9.7) * hz * 0.25), 0, 1)
+				local hi = V("Aim/Aimbot/Humanize/Intensity", 0)
+				if hi > 0 then
+					local sx, sy = shakeStep(shAim, dt, V("Aim/Aimbot/Humanize/Smoothness", 60))
+					goal = goal * CFrame.Angles(sx * hi / 100 * 0.02, sy * hi / 100 * 0.02, 0)
 				end
 				cam.CFrame = cf:Lerp(goal, alpha)
 			end
@@ -1904,10 +2040,10 @@ do
 			S.on = true
 			if not infoT then infoT = t end
 			if t then
-				local sh = V("Aim/Silent aim/Humanize", 0) / 100
-				if sh > 0 then
-					local tn = os.clock()
-					S.pos = t.pos + Vector3.new(math.noise(tn * 2.1, 1.3), math.noise(tn * 1.7, 2.9), math.noise(tn * 1.9, 5.1)) * (sh * 2.4)
+				local si = V("Aim/Silent aim/Humanize/Intensity", 0)
+				if si > 0 then
+					local x, y, z = shakeStep(shSil, dt, V("Aim/Silent aim/Humanize/Smoothness", 60))
+					S.pos = t.pos + Vector3.new(x, y, z) * (si / 100 * 3)
 				else
 					S.pos = t.pos
 				end
@@ -2300,6 +2436,248 @@ do
 					l.Visible = true
 				end
 			end
+		end
+	end)
+end
+
+----------------------------------------------------------------- CHAMS
+do
+	local ROWS, CARDS, ready = {}, {}, false
+	local function reindex()
+		local tabs = getgenv().DramaTABS
+		if type(tabs) ~= "table" then return end
+		local function walk(rows)
+			for _, r in ipairs(rows) do
+				if r.t == "g" then walk(r.rows) elseif r.path then ROWS[r.path] = r end
+			end
+		end
+		for _, tab in ipairs(tabs) do
+			for _, c in ipairs(tab.cards or {}) do
+				if c.path then CARDS[c.path] = c end
+				walk(c.rows or {})
+			end
+		end
+		ready = next(ROWS) ~= nil
+	end
+	local function V(path, def)
+		if not ready then reindex() end
+		local r = ROWS[path]
+		if r and r.val ~= nil then return r.val end
+		return def
+	end
+	local function ON(path)
+		if not ready then reindex() end
+		local c = CARDS[path]
+		return c ~= nil and c.enabled == true
+	end
+
+	local MAT_ENUM = {
+		[2] = Enum.Material.Neon, [3] = Enum.Material.ForceField,
+		[4] = Enum.Material.Glass, [5] = Enum.Material.Metal,
+	}
+	local states = {}
+
+	local function restoreParts(st)
+		for part, o in pairs(st.orig) do
+			if part.Parent then
+				pcall(function()
+					part.Material = o[1]
+					part.Color = o[2]
+					part.Reflectance = o[3]
+				end)
+			end
+		end
+		st.orig = {}
+	end
+	local function clearPlayer(pl)
+		local st = states[pl]
+		if not st then return end
+		restoreParts(st)
+		pcall(function() st.hl:Destroy() end)
+		states[pl] = nil
+	end
+	local function clearAll()
+		for pl in pairs(states) do clearPlayer(pl) end
+	end
+	Players.PlayerRemoving:Connect(clearPlayer)
+
+	local lastParts = 0
+	RunService.RenderStepped:Connect(function()
+		if not ON("Visual/Chams") then
+			if next(states) then clearAll() end
+			return
+		end
+		local cam = workspace.CurrentCamera
+		local now = os.clock()
+		local mode = V("Visual/Chams/Material", 1)
+		local maxD = V("Visual/Chams/Max distance", 500)
+		local rainbow = V("Visual/Chams/Rainbow", false)
+		local flashOn = V("Visual/Chams/Hit flash", true)
+		local aimState = getgenv().DramaAimState
+		local hitAt = aimState and aimState.hitAt
+		local byVis = V("Visual/Chams/Color by visibility", false)
+		local lpRoot = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
+		local doParts = now - lastParts > 0.1
+		if doParts then lastParts = now end
+
+		for _, pl in ipairs(Players:GetPlayers()) do
+			if pl ~= lp then
+				local char = pl.Character
+				local hum = char and char:FindFirstChildOfClass("Humanoid")
+				local root = char and char:FindFirstChild("HumanoidRootPart")
+				local head = char and char:FindFirstChild("Head")
+				local st = states[pl]
+				local okc = hum and hum.Health > 0 and root and head
+					and (not lpRoot or (lpRoot.Position - root.Position).Magnitude <= maxD)
+				if not okc then
+					if st then clearPlayer(pl) end
+				else
+					if st and (st.char ~= char or st.mode ~= mode) then
+						clearPlayer(pl)
+						st = nil
+					end
+					if not st then
+						local hl = Instance.new("Highlight")
+						hl.Adornee = char
+						local ok = pcall(function() hl.Parent = (gethui and gethui()) or game:GetService("CoreGui") end)
+						if not ok or not hl.Parent then hl.Parent = workspace end
+						st = {char = char, mode = mode, orig = {}, hl = hl}
+						states[pl] = st
+					end
+
+					local col
+					if rainbow then
+						col = Color3.fromHSV((now * 0.25) % 1, 1, 1)
+					elseif byVis then
+						col = isVisible(cam, char, head) and cfg.visColor or cfg.hidColor
+					else
+						col = COLOR_OPTS[V("Visual/Chams/Fill color", 4)] or COLOR_OPTS[4]
+					end
+					local fillT = V("Visual/Chams/Fill transparency", 50) / 100
+					if V("Visual/Chams/Pulse", false) then
+						fillT = math.clamp(fillT + math.sin(now * 4) * 0.25, 0, 1)
+					end
+
+					local flashing = flashOn and hitAt and hitAt[char] and (now - hitAt[char]) < 0.3
+					if flashing then
+						col = COLOR_OPTS[V("Visual/Chams/Flash color", 5)] or COLOR_OPTS[5]
+						fillT = math.min(fillT, 0.15)
+					end
+
+					local hl = st.hl
+					hl.FillColor = col
+					hl.OutlineColor = (rainbow or flashing) and col or (COLOR_OPTS[V("Visual/Chams/Outline color", 1)] or COLOR_OPTS[1])
+					hl.FillTransparency = (mode == 1) and fillT or 1
+					hl.OutlineTransparency = V("Visual/Chams/Outline transparency", 0) / 100
+					hl.DepthMode = V("Visual/Chams/Through walls", true) and Enum.HighlightDepthMode.AlwaysOnTop or Enum.HighlightDepthMode.Occluded
+
+					if mode ~= 1 and (doParts or flashing) then
+						local mat = MAT_ENUM[mode]
+						for _, d in ipairs(char:GetDescendants()) do
+							if d:IsA("BasePart") and d ~= root then
+								if not st.orig[d] then st.orig[d] = {d.Material, d.Color, d.Reflectance} end
+								d.Material = mat
+								d.Color = col
+								if mode == 5 then d.Reflectance = 0.3 end
+							end
+						end
+					end
+				end
+			end
+		end
+	end)
+end
+
+----------------------------------------------------------------- LOOK LINES
+do
+	local ROWS, CARDS, ready = {}, {}, false
+	local function reindex()
+		local tabs = getgenv().DramaTABS
+		if type(tabs) ~= "table" then return end
+		local function walk(rows)
+			for _, r in ipairs(rows) do
+				if r.t == "g" then walk(r.rows) elseif r.path then ROWS[r.path] = r end
+			end
+		end
+		for _, tab in ipairs(tabs) do
+			for _, c in ipairs(tab.cards or {}) do
+				if c.path then CARDS[c.path] = c end
+				walk(c.rows or {})
+			end
+		end
+		ready = next(ROWS) ~= nil
+	end
+	local function V(path, def)
+		if not ready then reindex() end
+		local r = ROWS[path]
+		if r and r.val ~= nil then return r.val end
+		return def
+	end
+	local function ON(path)
+		if not ready then reindex() end
+		local c = CARDS[path]
+		return c ~= nil and c.enabled == true
+	end
+
+	local lines = {}
+	local rp = RaycastParams.new()
+	rp.FilterType = Enum.RaycastFilterType.Exclude
+
+	local function removeLine(pl)
+		local l = lines[pl]
+		if l then
+			pcall(function() l:Remove() end)
+			lines[pl] = nil
+		end
+	end
+	Players.PlayerRemoving:Connect(removeLine)
+
+	RunService.RenderStepped:Connect(function()
+		if not ON("Visual/Look line") then
+			for pl in pairs(lines) do removeLine(pl) end
+			return
+		end
+		local cam = workspace.CurrentCamera
+		local S = getgenv().DramaAimState
+		local all = V("Visual/Look line/All players", false)
+		local len = V("Visual/Look line/Line length", 25)
+		local stop = V("Visual/Look line/Stop at walls", true)
+		local col = COLOR_OPTS[V("Visual/Look line/Line color", 1)] or COLOR_OPTS[1]
+		local alertCol = COLOR_OPTS[V("Visual/Look line/Alert color", 4)] or COLOR_OPTS[4]
+		local myHead = lp.Character and lp.Character:FindFirstChild("Head")
+
+		for _, pl in ipairs(Players:GetPlayers()) do
+			local show = false
+			local char = pl.Character
+			if pl ~= lp and char and (all or (S and S.tchar == char)) then
+				local head = char:FindFirstChild("Head")
+				local hum = char:FindFirstChildOfClass("Humanoid")
+				if head and hum and hum.Health > 0 then
+					local origin = head.Position
+					local look = head.CFrame.LookVector
+					local finish = origin + look * len
+					if stop then
+						rp.FilterDescendantsInstances = {char}
+						local res = workspace:Raycast(origin, look * len, rp)
+						if res then finish = res.Position end
+					end
+					local a, b = cam:WorldToViewportPoint(origin), cam:WorldToViewportPoint(finish)
+					if a.Z > 0 and b.Z > 0 then
+						local alert = myHead and look:Dot((myHead.Position - origin).Unit) > 0.97
+						local ln = lines[pl]
+						if not ln then
+							ln = newDraw("Line", {Thickness = 1.5, Transparency = 0.9, ZIndex = 4, Visible = false})
+							lines[pl] = ln
+						end
+						ln.From = Vector2.new(a.X, a.Y)
+						ln.To = Vector2.new(b.X, b.Y)
+						ln.Color = alert and alertCol or col
+						ln.Visible = true
+						show = true
+					end
+				end
+			end
+			if not show and lines[pl] then lines[pl].Visible = false end
 		end
 	end)
 end
