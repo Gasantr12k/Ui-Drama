@@ -40,8 +40,7 @@ local function newDraw(class, props)
 end
 
 local function hpColor(p)
-	-- HSV: H от 0° (красный) до 120° (зелёный), S=0.85, V=1
-	return Color3.fromHSV(p * (120 / 360), 0.85, 1)
+	return Color3.fromRGB(math.floor(255 * (1 - p)), math.floor(215 * p + 40), 70)
 end
 
 local function makeObj(z)
@@ -77,8 +76,8 @@ end
 
 local function renderObj(o, d)
 	local top, bot, cx, hw = d.top, d.bot, d.cx, d.hw
+	local compact = false
 	local far = (bot - top) < 45
-	local compact = (bot - top) < 20
 	local cy = (top + bot) / 2
 	local l, r, h = cx - hw, cx + hw, bot - top
 	local col = hpColor(d.hp)
@@ -255,8 +254,7 @@ visParams.FilterType = Enum.RaycastFilterType.Exclude
 visParams.RespectCanCollide = true
 
 local function isVisible(cam, char, head)
-	local myChar = lp.Character
-	visParams.FilterDescendantsInstances = myChar and {myChar} or {}
+	visParams.FilterDescendantsInstances = {lp.Character}
 	local origin = cam.CFrame.Position
 	local res = workspace:Raycast(origin, head.Position - origin, visParams)
 	return res == nil or res.Instance:IsDescendantOf(char)
@@ -601,20 +599,18 @@ end
 local function applyLang(idx, TABS)
 	local dict = LANG[langMap[idx] or "en"] or {}
 	for _, tab in ipairs(TABS) do
-		-- Сохраняем оригинал один раз и больше не обновляем,
-		-- чтобы повторные вызовы не перезаписывали его переведённым значением
-		if tab._origName == nil then tab._origName = tab.name end
-		if tab._origGroup == nil then tab._origGroup = tab.group end
-		tab.name  = dict[tab._origName]  or tab._origName
+		tab._origName = tab._origName or tab.name
+		tab._origGroup = tab._origGroup or tab.group
+		tab.name = dict[tab._origName] or tab._origName
 		tab.group = dict[tab._origGroup] or tab._origGroup
 		if tab.cards then
 			for _, card in ipairs(tab.cards) do
-				if card._origTitle == nil then card._origTitle = card.title end
+				card._origTitle = card._origTitle or card.title
 				card.title = dict[card._origTitle] or card._origTitle
 				if card.rows then
 					local function patchRows(rows)
 						for _, r in ipairs(rows) do
-							if r._origL == nil then r._origL = r.l end
+							r._origL = r._origL or r.l
 							r.l = dict[r._origL] or r._origL
 							if r.t == "g" and r.rows then patchRows(r.rows) end
 						end
