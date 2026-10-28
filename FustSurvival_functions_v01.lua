@@ -3033,7 +3033,7 @@ getgenv().DramaHooks = {
 }
 
 ----------------------------------------------------------------- LOAD UI
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Gasantr12k/Ui-Drama/main/Drama_Client.client"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Gasantr12k/Ui-Drama/main/FustSurvival_Client_v01.client"))()
 
 task.delay(0.5, function() setLang(2) end)
 task.delay(2.5, function() setLang(2) end)
