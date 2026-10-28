@@ -459,6 +459,84 @@ do
 			},
 		},
 		{
+			name="Ambient",
+			group="World",
+			icon="sun",
+			cards={
+				{
+					col=0,
+					title="Night Vision",
+					icon="eye",
+					on=false,
+					rows={
+						{t="s", l="NV brightness", min=0, max=10, v=5, u=""},
+						{t="s", l="NV saturation", min=-1, max=1, v=0, u=""},
+					},
+				},
+				{
+					col=0,
+					title="Shadows",
+					icon="sun",
+					on=true,
+					rows={
+						{t="c", l="No shadows", v=false},
+					},
+				},
+				{
+					col=1,
+					title="Foliage",
+					icon="star",
+					on=true,
+					rows={
+						{t="c", l="No leaves", v=false},
+						{t="c", l="No grass", v=false},
+					},
+				},
+				{
+					col=1,
+					title="Fog",
+					icon="eye",
+					on=false,
+					rows={
+						{t="c", l="Remove fog", v=true},
+					},
+				},
+			},
+		},
+		{
+			name="Aim",
+			group="Combat",
+			icon="crosshair",
+			cards={
+				{
+					col=0,
+					title="Aimbot",
+					icon="crosshair",
+					on=false,
+					rows={
+						{t="k", l="Hotkey", v="Mouse 2"},
+						{t="c", l="Auto predict", v=true},
+						{t="s", l="Distance", min=50, max=1500, v=300, u=" st"},
+						{t="c", l="Wall check", v=true},
+						{t="c", l="Sleep check", v=true},
+						{t="s", l="Smoothing", min=0, max=95, v=20, u="%"},
+					},
+				},
+				{
+					col=1,
+					title="Silent aim",
+					icon="crosshair",
+					on=false,
+					rows={
+						{t="c", l="Auto predict", v=true},
+						{t="s", l="Distance", min=50, max=1500, v=300, u=" st"},
+						{t="c", l="Wall check", v=true},
+						{t="c", l="Sleep check", v=true},
+					},
+				},
+			},
+		},
+		{
 			name="Miscellaneous",
 			group="Library",
 			icon="cpu",
